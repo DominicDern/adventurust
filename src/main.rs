@@ -1,8 +1,10 @@
+use std::{default, fmt::Debug};
+
 fn main() {
     println!("Hello dipshit");
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Health {
     primary_hp: u16,
     primary_max_hp: u16,
@@ -36,6 +38,20 @@ impl Health {
     }
 }
 
+impl Default for Health {
+    fn default() -> Self {
+        Health {
+            primary_hp: 1,
+            primary_max_hp: 1,
+            secondary_hp: 0,
+            secondary_max_hp: 0,
+            temp_hp: 0,
+            temp_max_hp: 0,
+            wild_shape: false,
+        }
+    }
+}
+
 trait Actor {
     fn get_name(&self) -> String;
     fn get_health(&self) -> (u16, u16, Option<(u16, u16)>);
@@ -43,7 +59,7 @@ trait Actor {
     fn get_resistances(&self) -> Vec<String>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Condition {
     name: String,
     description: String,
@@ -56,7 +72,17 @@ impl Condition {
     }
 }
 
-#[derive(Debug)]
+impl Default for Condition {
+    fn default() -> Self {
+        Condition {
+            name: "default condition name".to_string(),
+            description: "default condition dsecription".to_string(),
+            turn: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 struct Character {
     name: String,
     health: Health,
@@ -83,25 +109,56 @@ impl Actor for Character {
     }
 }
 
-#[derive(Debug)]
-struct IniativeQueue {
-    queue: Vec<Character>,
-    position: u16,
-}
-
-impl IniativeQueue {
-    fn new(actors: Vec<Character>) -> Self {
-        // TODO add rolling inititive to queue
-        Self {
-            queue: actors,
-            position: 0,
+impl Default for Character {
+    fn default() -> Self {
+        let default_character_health = Health::default();
+        Character {
+            name: "default character".to_string(),
+            health: default_character_health,
+            ac: 1,
+            resistances: vec!["none".to_string()],
+            statuses: vec![Condition::default()],
         }
     }
 }
 
-impl IniativeQueue {
+#[derive(Debug)]
+struct InitiativeQueue {
+    queue: Vec<Character>,
+    position: u16,
+}
+
+impl InitiativeQueue {
+    /// Creates a inititive queue with pre rolled inititive numbers
+    fn new_pre_rolled(mut actors: Vec<(Character, u16)>) -> Self {
+        let mut queue: Vec<(Character, u16)> = vec![];
+        match actors.pop() {
+            Some(character_roll) => queue = vec![character_roll],
+            None => {
+                return InitiativeQueue {
+                    queue: vec![Character::default()],
+                    position: u16::MAX,
+                };
+            }
+        };
+        for actor in actors.iter_mut() {
+            let mut index = 0;
+            for added_actor in queue.iter_mut() {
+                if actor.1 == added_actor.1 {
+                    queue.insert(index + 1, actor.clone());
+                } else if actor.1 < added_actor.1 {
+                }
+            }
+            index += 1;
+        }
+        print!("{:?}", queue);
+        todo!()
+    }
+}
+
+impl InitiativeQueue {
     // TODO add rolling inititive
-    fn add(&mut self, actor: Character) {
+    fn add(&mut self, actor: Character, initiative: u16) {
         self.queue.push(actor);
         todo!()
     }
