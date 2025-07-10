@@ -4,7 +4,7 @@ use priority_queue::PriorityQueue;
 #[derive(Debug)]
 pub struct InitiativeQueue<'a> {
     queue: PriorityQueue<&'a Character, u16>,
-    position: u16,
+    position: u32,
 }
 
 impl<'a> InitiativeQueue<'a> {
@@ -20,9 +20,17 @@ impl<'a> InitiativeQueue<'a> {
 
 impl<'a> InitiativeQueue<'a> {
     // TODO add rolling inititive
-
-    pub fn get_queue(&self) -> Self {
-        todo!()
+    pub fn get_queue(&self) -> Option<Vec<(Character, u16)>> {
+        if self.queue.is_empty() {
+            None
+        } else {
+            let mut queue = Vec::new();
+            for (character, initiative) in self.queue.clone().into_sorted_iter() {
+                queue.push((character.clone(), initiative.clone()));
+            }
+            queue.rotate_left(self.position as usize);
+            Some(queue)
+        }
     }
 
     pub fn add(&mut self, actor: &'a Character, initiative: u16) {
@@ -31,7 +39,7 @@ impl<'a> InitiativeQueue<'a> {
 
     pub fn next_turn(&mut self) {
         // TODO add status effect turn addition
-        if self.position == self.queue.len() as u16 - 1 {
+        if self.position == self.queue.len() as u32 - 1 {
             self.position = 0;
         } else {
             self.position += 1;
