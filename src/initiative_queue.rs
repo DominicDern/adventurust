@@ -20,13 +20,13 @@ impl<'a> InitiativeQueue<'a> {
 
 impl<'a> InitiativeQueue<'a> {
     // TODO add rolling inititive
-    pub fn get_queue(&self) -> Option<Vec<(Character, u16)>> {
+    pub fn get_queue(&self) -> Option<Vec<(&'a Character, u16)>> {
         if self.queue.is_empty() {
             None
         } else {
             let mut queue = Vec::new();
             for (character, initiative) in self.queue.clone().into_sorted_iter() {
-                queue.push((character.clone(), initiative.clone()));
+                queue.push((character, initiative));
             }
             queue.rotate_left(self.position as usize);
             Some(queue)
