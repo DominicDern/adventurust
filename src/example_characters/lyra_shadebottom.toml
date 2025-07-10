@@ -1,0 +1,9 @@
+name = "Lyra Shadebottom"
+
+[stats]
+health = [0, 0, 0, 0, 0, 0, false]
+ac = 10
+
+[resistances]
+
+[conditions]
