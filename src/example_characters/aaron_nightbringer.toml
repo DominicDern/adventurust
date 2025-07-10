@@ -1,4 +1,18 @@
 name = "Aaron Nightbringer"
+conditions = [
+  [
+    "Bleeding", 
+    """Bleeding creatures must make a Consitution save vs DC 14 at the end of their turns, or lose 3 (1d6) maximum hit points. 
+    Beating DC 18 ends this condition. Multiple instances of bleeding do not stack. If a bleeding creature's maximum hit points 
+    becomes less than their current hit points, its current hit points are reduced to match the max. The target gains a level of 
+    exhaustion for every 1/5 of its original max hp lost this way. A DC 13 Wisdom (Medicine) check or magical healing will stop 
+    the bleeding. A long rest with food and water recovers all max hit points and all levels of bleeding exhastion. Alternatively, 
+    Greater Restoration or a DC 18 Wisdom (Medicine) check may restore the max hit points, but not the exhaustion. """,
+    [
+      ["constitution", 13],
+    ]
+  ]
+]
 
 [stats]
 health = [0, 0, 0, 0, 0, 0, false]
