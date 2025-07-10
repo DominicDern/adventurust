@@ -1,3 +1,5 @@
 name = "Aaron Nightbringer"
+
+[stats]
 health = [0, 0, 0, 0, 0, 0, false]
 ac = 10

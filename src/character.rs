@@ -14,13 +14,20 @@ pub struct Character {
 impl Character {
     pub fn from_file(file_path: &str) -> Self {
         use serde::Deserialize;
+
+        #[derive(Deserialize, Debug)]
+        struct Stats {
+            health: (u16, u16, u16, u16, u16, u16, bool),
+            ac: u16,
+        }
+
         #[derive(Deserialize)]
         struct CharacterTOML {
             name: String,
-            health: (u16, u16, u16, u16, u16, u16, bool),
-            ac: u16,
-            resistances: Option<Vec<String>>,
-            conditions: Option<Vec<Condition>>,
+            stats: Stats,
+            // TODO add conditions to this
+            //resistances: Option<Vec<String>>,
+            //conditions: Option<Vec<Condition>>,
         }
         use std::fs::File;
         let mut file = File::open(file_path).expect("unable to open character file");
@@ -30,20 +37,21 @@ impl Character {
         let character_toml: CharacterTOML =
             toml::from_str(&file_contents).expect("failed to deserialize character file");
         let character_health: Health = Health {
-            primary_hp: character_toml.health.0,
-            primary_max_hp: character_toml.health.1,
-            secondary_hp: character_toml.health.2,
-            secondary_max_hp: character_toml.health.3,
-            temp_hp: character_toml.health.4,
-            temp_max_hp: character_toml.health.5,
-            wild_shape: character_toml.health.6,
+            primary_hp: character_toml.stats.health.0,
+            primary_max_hp: character_toml.stats.health.1,
+            secondary_hp: character_toml.stats.health.2,
+            secondary_max_hp: character_toml.stats.health.3,
+            temp_hp: character_toml.stats.health.4,
+            temp_max_hp: character_toml.stats.health.5,
+            wild_shape: character_toml.stats.health.6,
         };
         Character {
             name: character_toml.name,
             health: character_health,
-            ac: character_toml.ac,
-            resistances: character_toml.resistances,
-            conditions: character_toml.conditions,
+            ac: character_toml.stats.ac,
+            // TODO change to nonconstant values
+            resistances: None,
+            conditions: None,
         }
     }
 }
