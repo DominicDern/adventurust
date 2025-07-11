@@ -1,4 +1,5 @@
 name = "Jarn Baker"
+art = "jarn_baker.jpg"
 
 [stats]
 health = [0, 0, 0, 0, 0, 0, false]

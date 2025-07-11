@@ -1,10 +1,12 @@
-use std::io::Read;
+use iced::advanced::image::Image;
+use std::{io::Read, path::Path};
 
 use crate::{actor::Actor, condition::Condition, health::Health};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Character {
     name: String,
+    art: String,
     health: Health,
     ac: u16,
     resistances: Option<Vec<String>>,
@@ -24,6 +26,7 @@ impl Character {
         #[derive(Deserialize)]
         struct CharacterTOML {
             name: String,
+            art: String,
             stats: Stats,
             // TODO add conditions to this
             //resistances: Option<Vec<String>>,
@@ -47,6 +50,7 @@ impl Character {
         };
         Character {
             name: character_toml.name,
+            art: character_toml.art,
             health: character_health,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
@@ -61,6 +65,7 @@ impl Default for Character {
         let default_character_health = Health::default();
         Character {
             name: "default character".to_string(),
+            art: String::new(),
             health: default_character_health,
             ac: 1,
             resistances: None,
