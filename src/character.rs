@@ -1,10 +1,11 @@
-use std::io::Read;
+use std::hash::{Hash, Hasher};
 
 use crate::{actor::Actor, condition::Condition, health::Health};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Character {
     name: String,
+    id: u64,
     health: Health,
     ac: u16,
     resistances: Option<Vec<String>>,
@@ -14,6 +15,7 @@ pub struct Character {
 impl Character {
     pub fn from_file(file_path: &str) -> Self {
         use serde::Deserialize;
+        use std::io::Read;
 
         #[derive(Deserialize, Debug)]
         struct Stats {
@@ -45,8 +47,32 @@ impl Character {
             temp_max_hp: character_toml.stats.health.5,
             wild_shape: character_toml.stats.health.6,
         };
+        let name = character_toml.name;
+        use std::hash::DefaultHasher;
+        #[derive(Hash)]
+        struct TempCharacter {
+            name: String,
+            health: Health,
+            ac: u16,
+            resistances: Option<Vec<String>>,
+            conditions: Option<Vec<Condition>>,
+        }
+
+        let mut hasher = DefaultHasher::new();
+        let temp_character = TempCharacter {
+            name: name.clone(),
+            health: character_health,
+            ac: character_toml.stats.ac,
+            // TODO change to nonconstant values
+            resistances: None,
+            conditions: None,
+        };
+        temp_character.hash(&mut hasher);
+        let id = hasher.finish();
+
         Character {
-            name: character_toml.name,
+            name,
+            id,
             health: character_health,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
@@ -58,9 +84,13 @@ impl Character {
 
 impl Default for Character {
     fn default() -> Self {
+        use rand::{Rng, rng};
         let default_character_health = Health::default();
+        let mut rng = rng();
+        let id = rng.random::<u64>();
         Character {
             name: "default character".to_string(),
+            id,
             health: default_character_health,
             ac: 1,
             resistances: None,
