@@ -23,7 +23,7 @@ impl InitiativeQueue {
             queue.push_front(actors.pop().unwrap());
             let mut queue = InitiativeQueue { queue, position: 0 };
             for (id, initiative) in actors {
-                queue.add(id, initiative);
+                queue.add(id, initiative, false);
             }
             Some(queue)
         }
@@ -44,17 +44,20 @@ impl InitiativeQueue {
 
     /// Adds an ID to the initiative. If the queue already contains an ID of equal initiative
     /// the new initiative is added immediately after.
-    pub fn add(&mut self, id: ID, initiative: u16) {
+    pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) {
         let mut index = 0;
         for (_, initiative_check) in self.queue.clone() {
             if initiative == initiative_check {
                 self.queue.insert(index + 1, (id, initiative));
                 break;
             } else if initiative > initiative_check {
-                self.queue.insert(index, (id.clone(), initiative));
+                self.queue.insert(index, (id, initiative));
+                if in_battle {
+                    self.position += 1;
+                }
                 break;
             } else if initiative < initiative_check && index == self.queue.len() - 1 {
-                self.queue.push_back((id.clone(), initiative));
+                self.queue.push_back((id, initiative));
             } else {
                 index += 1;
             }

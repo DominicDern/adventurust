@@ -2,7 +2,7 @@ use std::hash::{Hash, Hasher};
 
 use crate::{actor::Actor, condition::Condition, health::Health};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ID {
     id: u64,
 }
