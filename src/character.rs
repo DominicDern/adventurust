@@ -2,10 +2,15 @@ use std::hash::{Hash, Hasher};
 
 use crate::{actor::Actor, condition::Condition, health::Health};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ID {
+    id: u64,
+}
+
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Character {
     name: String,
-    id: u64,
+    id: ID,
     health: Health,
     ac: u16,
     resistances: Option<Vec<String>>,
@@ -68,7 +73,9 @@ impl Character {
             conditions: None,
         };
         temp_character.hash(&mut hasher);
-        let id = hasher.finish();
+        let id = ID {
+            id: hasher.finish(),
+        };
 
         Character {
             name,
@@ -87,7 +94,9 @@ impl Default for Character {
         use rand::{Rng, rng};
         let default_character_health = Health::default();
         let mut rng = rng();
-        let id = rng.random::<u64>();
+        let id = ID {
+            id: rng.random::<u64>(),
+        };
         Character {
             name: "default character".to_string(),
             id,
@@ -108,6 +117,10 @@ impl Actor for Character {
         self.name = name;
     }
 
+    fn get_id(self) -> ID {
+        self.id.clone()
+    }
+
     fn get_health(&self) -> (u16, u16, Option<(u16, u16)>) {
         self.health.get_health()
     }
@@ -117,7 +130,7 @@ impl Actor for Character {
     }
 
     fn get_ac(&self) -> u16 {
-        self.ac.clone()
+        self.ac
     }
 
     fn set_ac(&mut self, ac: u16) {
