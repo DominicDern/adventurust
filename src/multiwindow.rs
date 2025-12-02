@@ -41,10 +41,10 @@ pub enum Message {
     SplitFocused(window::Id, pane_grid::Axis),
     Clicked(pane_grid::Pane),
     Dragged(pane_grid::DragEvent),
-    Resized(pane_grid::ResizeEvent),
-    Maximize(pane_grid::Pane),
-    Restore,
-    Close(pane_grid::Pane),
+    Resized(window::Id, pane_grid::ResizeEvent),
+    Maximize(window::Id, pane_grid::Pane),
+    Restore(window::Id),
+    Close(window::Id, pane_grid::Pane),
     CloseFocused,
 }
 
@@ -129,6 +129,30 @@ impl AppState {
                 }
                 Task::none()
             }
+            Message::Resized(window_id, resize_event) => {
+                if let Some(window) = self.windows.get_mut(window_id) {
+                    window.update(Message::Resized(*window_id, *resize_event));
+                }
+                Task::none()
+            }
+            Message::Maximize(window_id, pane) => {
+                if let Some(window) = self.windows.get_mut(window_id) {
+                    window.update(Message::Maximize(*window_id, *pane));
+                }
+                Task::none()
+            }
+            Message::Restore(window_id) => {
+                if let Some(window) = self.windows.get_mut(window_id) {
+                    window.update(Message::Restore(*window_id));
+                }
+                Task::none()
+            }
+            Message::Close(window_id, pane) => {
+                if let Some(window) = self.windows.get_mut(window_id) {
+                    window.update(Message::Close(*window_id, *pane));
+                }
+                Task::none()
+            }
             _ => Task::none(),
         }
     }
@@ -198,12 +222,12 @@ impl Window {
 
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(pane_grid::Controls::dynamic(
-                    view_controls(id, total_panes, pane.is_pinned, is_maximized),
+                    view_controls(window_id, id, total_panes, pane.is_pinned, is_maximized),
                     button(text("X").size(14))
                         .style(button::danger)
                         .padding(3)
                         .on_press_maybe(if total_panes > 1 && !pane.is_pinned {
-                            Some(Message::Close(id))
+                            Some(Message::Close(window_id, id))
                         } else {
                             None
                         }),
@@ -228,7 +252,7 @@ impl Window {
         .spacing(10)
         .on_click(Message::Clicked)
         .on_drag(Message::Dragged)
-        .on_resize(10, Message::Resized);
+        .on_resize(10, move |event| Message::Resized(window_id, event));
         let content = column![new_window_button, pane_grid].spacing(10);
 
         container(content).into()
@@ -236,7 +260,7 @@ impl Window {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::Split(window_id, axis, pane) => {
+            Message::Split(_, axis, pane) => {
                 let result = self.panes.split(axis, pane, Pane::new(self.panes_created));
 
                 if let Some((pane, _)) = result {
@@ -245,7 +269,7 @@ impl Window {
 
                 self.panes_created += 1;
             }
-            Message::SplitFocused(window_id, axis) => {
+            Message::SplitFocused(_, axis) => {
                 if let Some(pane) = self.focus {
                     let result = self.panes.split(axis, pane, Pane::new(self.panes_created));
 
@@ -254,6 +278,24 @@ impl Window {
                     }
 
                     self.panes_created += 1;
+                }
+            }
+            Message::Resized(_, pane_grid::ResizeEvent { split, ratio }) => {
+                self.panes.resize(split, ratio);
+            }
+            Message::Maximize(_, pane) => {
+                self.panes.maximize(pane);
+                self.focus = Some(pane);
+            }
+            Message::Restore(_) => {
+                self.panes.restore();
+            }
+            Message::Close(_, pane) => {
+                if let Some(fallback) = self.panes.close(pane) {
+                    self.focus = Some(fallback.1);
+                } else {
+                    // nothing to fall back to, remove focus
+                    self.focus = None;
                 }
             }
             _ => (),
@@ -301,7 +343,7 @@ fn view_content<'a>(
         )
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(button("Close", Message::Close(pane)).style(button::danger))
+        Some(button("Close", Message::Close(window_id, pane)).style(button::danger))
     } else {
         None
     })
@@ -316,6 +358,7 @@ fn view_content<'a>(
 }
 
 fn view_controls<'a>(
+    window_id: window::Id,
     pane: pane_grid::Pane,
     total_panes: usize,
     is_pinned: bool,
@@ -323,9 +366,9 @@ fn view_controls<'a>(
 ) -> Element<'a, Message> {
     let row = row![].spacing(5).push_maybe(if total_panes > 1 {
         let (content, message) = if is_maximized {
-            ("Restore", Message::Restore)
+            ("Restore", Message::Restore(window_id))
         } else {
-            ("Maximize", Message::Maximize(pane))
+            ("Maximize", Message::Maximize(window_id, pane))
         };
 
         Some(
@@ -342,7 +385,7 @@ fn view_controls<'a>(
         .style(button::danger)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
-            Some(Message::Close(pane))
+            Some(Message::Close(window_id, pane))
         } else {
             None
         });
