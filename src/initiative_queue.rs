@@ -1,6 +1,5 @@
 use crate::character::ID;
 use std::collections::VecDeque;
-// use VecDeque;
 
 #[derive(Debug, Clone)]
 pub struct InitiativeQueue {
