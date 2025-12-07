@@ -1,6 +1,7 @@
 use crate::character::{Character, ID};
 use crate::health::Health;
 use crate::initiative_queue::InitiativeQueue;
+use crate::widgets::{self, WidgetType};
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -46,6 +47,7 @@ pub enum Message {
     Restore(window::Id),
     Close(window::Id, pane_grid::Pane),
     CloseFocused,
+    WidgetChange(window::Id, pane_grid::Pane, WidgetType),
 }
 
 #[derive(Default)]
@@ -153,6 +155,12 @@ impl AppState {
                 }
                 Task::none()
             }
+            Message::WidgetChange(window_id, pane, widget_type) => {
+                if let Some(window) = self.windows.get_mut(window_id) {
+                    window.update(Message::WidgetChange(*window_id, *pane, *widget_type));
+                }
+                Task::none()
+            }
             _ => Task::none(),
         }
     }
@@ -240,7 +248,14 @@ impl Window {
                 });
 
             pane_grid::Content::new(responsive(move |size| {
-                view_content(window_id, id, total_panes, pane.is_pinned, size)
+                view_content(
+                    window_id,
+                    id,
+                    total_panes,
+                    pane.widget_type,
+                    pane.is_pinned,
+                    size,
+                )
             }))
             .title_bar(title_bar)
             .style(if is_focused {
@@ -255,7 +270,7 @@ impl Window {
         .on_resize(10, move |event| Message::Resized(window_id, event));
         let content = column![new_window_button, pane_grid].spacing(10);
 
-        container(content).into()
+        container(content).width(Fill).height(Fill).into()
     }
 
     fn update(&mut self, message: Message) {
@@ -298,7 +313,12 @@ impl Window {
                     self.focus = None;
                 }
             }
-            _ => (),
+            Message::WidgetChange(_, pane, new_widget_type) => {
+                if let Some(pane) = self.panes.get_mut(pane) {
+                    pane.widget_type = new_widget_type;
+                }
+            }
+            _ => todo!(),
         }
     }
 }
@@ -306,6 +326,7 @@ impl Window {
 #[derive(Clone)]
 struct Pane {
     id: usize,
+    widget_type: WidgetType,
     pub is_pinned: bool,
 }
 
@@ -313,6 +334,7 @@ impl Pane {
     fn new(id: usize) -> Self {
         Self {
             id,
+            widget_type: WidgetType::Blank,
             is_pinned: false,
         }
     }
@@ -322,8 +344,9 @@ fn view_content<'a>(
     window_id: window::Id,
     pane: pane_grid::Pane,
     total_panes: usize,
+    widget_type: widgets::WidgetType,
     is_pinned: bool,
-    size: Size,
+    _size: Size,
 ) -> Element<'a, Message> {
     let button = |label, message| {
         button(text(label).width(Fill).align_x(Center).size(16))
@@ -332,29 +355,59 @@ fn view_content<'a>(
             .on_press(message)
     };
 
+    let content = match widget_type {
+        WidgetType::Blank => {
+            row![
+                text!("New widget"),
+                button(
+                    "Change to WidgetA",
+                    Message::WidgetChange(window_id, pane, WidgetType::WidgetA)
+                )
+            ]
+        }
+        WidgetType::WidgetA => {
+            row![
+                text!("Widget A"),
+                button(
+                    "Change to WidgetB",
+                    Message::WidgetChange(window_id, pane, WidgetType::WidgetB),
+                )
+            ]
+        }
+        WidgetType::WidgetB => {
+            row![
+                text!("WidgetB"),
+                button(
+                    "Change to new widget",
+                    Message::WidgetChange(window_id, pane, WidgetType::Blank)
+                )
+            ]
+        }
+    }
+    .width(Fill)
+    .height(Fill);
+
     let controls = column![
-        button(
-            "Split horizontally",
-            Message::Split(window_id, pane_grid::Axis::Horizontal, pane),
-        ),
-        button(
-            "Split vertically",
-            Message::Split(window_id, pane_grid::Axis::Vertical, pane),
-        )
+        row![
+            button(
+                "Split horizontally",
+                Message::Split(window_id, pane_grid::Axis::Horizontal, pane),
+            ),
+            button(
+                "Split vertically",
+                Message::Split(window_id, pane_grid::Axis::Vertical, pane)
+            ),
+        ],
+        content.width(Fill)
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
         Some(button("Close", Message::Close(window_id, pane)).style(button::danger))
     } else {
         None
     })
-    .spacing(5)
-    .max_width(160);
+    .spacing(5);
 
-    let content = column![text!("{}x{}", size.width, size.height).size(24), controls,]
-        .spacing(10)
-        .align_x(Center);
-
-    container(content).center_y(Fill).padding(5).into()
+    container(controls).center_y(Fill).padding(5).into()
 }
 
 fn view_controls<'a>(

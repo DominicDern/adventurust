@@ -4,6 +4,7 @@ mod condition;
 mod health;
 mod initiative_queue;
 mod multiwindow;
+mod widgets;
 
 use multiwindow::AppState;
 
