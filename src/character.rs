@@ -7,14 +7,33 @@ pub struct ID {
     id: u64,
 }
 
+impl ID {
+    fn get_id(character_name: &String) -> Self {
+        use std::hash::DefaultHasher;
+        let mut hasher = DefaultHasher::new();
+        character_name.hash(&mut hasher);
+        Self {
+            id: hasher.finish(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct Character {
-    name: String,
-    id: ID,
+    pub name: String,
+    pub id: ID,
     health: Health,
     ac: u16,
-    resistances: Option<Vec<String>>,
-    conditions: Option<Vec<Condition>>,
+    speed: Vec<(String, u16)>,
+    stats: Vec<(String, u16, u16)>,
+    immunities: Vec<String>,
+    senses: Vec<String>,
+    // passive_perception: u16,
+    // actions:
+    // traits: Vec<(String, String)>,
+    // languages: Vec<String>,
+    // resistances: Option<Vec<String>>,
+    // conditions: Option<Vec<Condition>>,
 }
 
 impl Character {
@@ -23,15 +42,19 @@ impl Character {
         use std::io::Read;
 
         #[derive(Deserialize, Debug)]
-        struct Stats {
+        struct Info {
             health: (u16, u16, u16, u16, u16, u16, bool),
             ac: u16,
+            stats: Vec<(String, u16, u16)>,
+            speed: Vec<(String, u16)>,
+            senses: Vec<String>,
+            immunities: Vec<String>,
         }
 
         #[derive(Deserialize)]
         struct CharacterTOML {
             name: String,
-            stats: Stats,
+            info: Info,
             // TODO add conditions to this
             //resistances: Option<Vec<String>>,
             //conditions: Option<Vec<Condition>>,
@@ -43,22 +66,30 @@ impl Character {
             .expect("unable to read character file contents");
         let character_toml: CharacterTOML =
             toml::from_str(&file_contents).expect("failed to deserialize character file");
-        let character_health: Health = Health {
-            primary_hp: character_toml.stats.health.0,
-            primary_max_hp: character_toml.stats.health.1,
-            secondary_hp: character_toml.stats.health.2,
-            secondary_max_hp: character_toml.stats.health.3,
-            temp_hp: character_toml.stats.health.4,
-            temp_max_hp: character_toml.stats.health.5,
-            wild_shape: character_toml.stats.health.6,
-        };
         let name = character_toml.name;
+        let character_health: Health = Health {
+            primary_hp: character_toml.info.health.0,
+            primary_max_hp: character_toml.info.health.1,
+            secondary_hp: character_toml.info.health.2,
+            secondary_max_hp: character_toml.info.health.3,
+            temp_hp: character_toml.info.health.4,
+            temp_max_hp: character_toml.info.health.5,
+            wild_shape: character_toml.info.health.6,
+        };
+        let mut character_stats: Vec<(String, u16, u16)> = Vec::new();
+        for stat in character_toml.info.stats {
+            character_stats.push(stat);
+        }
+
         use std::hash::DefaultHasher;
         #[derive(Hash)]
         struct TempCharacter {
             name: String,
             health: Health,
             ac: u16,
+            stats: Vec<(String, u16, u16)>,
+            speed: Vec<(String, u16)>,
+            senses: Vec<String>,
             resistances: Option<Vec<String>>,
             conditions: Option<Vec<Condition>>,
         }
@@ -67,24 +98,26 @@ impl Character {
         let temp_character = TempCharacter {
             name: name.clone(),
             health: character_health,
-            ac: character_toml.stats.ac,
-            // TODO change to nonconstant values
+            ac: character_toml.info.ac,
+            stats: character_stats.clone(),
+            speed: character_toml.info.speed.clone(),
+            senses: character_toml.info.senses.clone(),
+            // TODO change to inconstant values
             resistances: None,
             conditions: None,
         };
         temp_character.hash(&mut hasher);
-        let id = ID {
-            id: hasher.finish(),
-        };
-
+        let id = ID::get_id(&name);
         Character {
             name,
             id,
             health: character_health,
-            ac: character_toml.stats.ac,
-            // TODO change to nonconstant values
-            resistances: None,
-            conditions: None,
+            ac: character_toml.info.ac,
+            stats: character_stats,
+            speed: character_toml.info.speed,
+            senses: character_toml.info.senses,
+            immunities: character_toml.info.immunities,
+            // TODO change to inconstant values
         }
     }
 }
@@ -97,13 +130,24 @@ impl Default for Character {
         let id = ID {
             id: rng.random::<u64>(),
         };
+        let character_stats = vec![
+            ("Strength".to_string(), 10, 0),
+            ("Inteligence".to_string(), 10, 0),
+            ("Dexterity".to_string(), 10, 0),
+            ("Wisdom".to_string(), 10, 0),
+            ("Constitution".to_string(), 10, 0),
+            ("Charisma".to_string(), 10, 0),
+        ];
+        let speed = vec![("Ground".to_string(), 10)];
         Character {
             name: "default character".to_string(),
             id,
             health: default_character_health,
             ac: 1,
-            resistances: None,
-            conditions: None,
+            speed,
+            stats: character_stats,
+            senses: Vec::new(),
+            immunities: Vec::new(),
         }
     }
 }
@@ -118,7 +162,7 @@ impl Actor for Character {
     }
 
     fn get_id(self) -> ID {
-        self.id.clone()
+        self.id
     }
 
     fn get_health(&self) -> (u16, u16, Option<(u16, u16)>) {
@@ -137,41 +181,22 @@ impl Actor for Character {
         self.ac = ac;
     }
 
-    fn get_resistances(&self) -> Option<Vec<String>> {
-        self.resistances.clone()
+    fn get_stats(&self) -> Vec<(String, u16, u16)> {
+        self.stats.clone()
     }
 
-    fn set_resistances(&mut self, resistances: Option<Vec<String>>) {
-        self.resistances = resistances;
+    fn set_stats(&mut self, stats: Vec<(String, u16, u16)>) {
+        self.stats = stats;
     }
 
-    fn add_resistance(&mut self, resistance: String) {
-        match self.resistances.as_mut() {
-            Some(resistances) => {
-                resistances.push(resistance);
-            }
-            None => {
-                self.resistances = Some(vec![resistance]);
-            }
-        }
-    }
-
-    fn get_conditions(&self) -> Option<Vec<Condition>> {
-        self.conditions.clone()
-    }
-
-    fn set_conditions(&mut self, conditions: Option<Vec<Condition>>) {
-        self.conditions = conditions;
-    }
-
-    fn add_condition(&mut self, condition: Condition) {
-        match self.conditions.as_mut() {
-            Some(conditions) => {
-                conditions.push(condition);
-            }
-            None => {
-                self.conditions = Some(vec![condition]);
+    fn set_stat(&mut self, stat_name: String, value: u16, modifier: u16) {
+        for stat in &mut self.stats {
+            if stat.0 == stat_name {
+                stat.1 = value;
+                stat.2 = modifier;
+                return;
             }
         }
+        self.stats.push((stat_name, value, modifier));
     }
 }

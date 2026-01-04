@@ -1,4 +1,4 @@
-use std::{default, fmt};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum WidgetType {

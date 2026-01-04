@@ -4,11 +4,11 @@ use std::collections::VecDeque;
 #[derive(Debug, Clone)]
 pub struct InitiativeQueue {
     queue: VecDeque<(ID, u16)>,
-    position: usize,
+    pub position: usize,
 }
 
 impl InitiativeQueue {
-    /// Creates a inititive queue with pre rolled inititive numbers
+    /// Creates an initiative queue with pre rolled initiative numbers
     pub fn new_pre_rolled(mut actors: Vec<(ID, u16)>) -> Option<Self> {
         let mut queue = VecDeque::new();
 
@@ -30,20 +30,20 @@ impl InitiativeQueue {
 }
 
 impl InitiativeQueue {
-    // TODO add rolling inititive
+    // TODO add rolling initiative
     pub fn get_queue(&self) -> Option<VecDeque<(ID, u16)>> {
         if self.queue.is_empty() {
             None
         } else {
             let mut queue = self.queue.clone();
             queue.rotate_left(self.position);
-            Some(queue)
+            Some(queue.clone())
         }
     }
 
     /// Adds an ID to the initiative. If the queue already contains an ID of equal initiative
     /// the new initiative is added immediately after.
-    pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) {
+    pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) -> Option<Self> {
         let mut index = 0;
         for (_, initiative_check) in self.queue.clone() {
             if initiative == initiative_check {
@@ -61,6 +61,7 @@ impl InitiativeQueue {
                 index += 1;
             }
         }
+        Some(self.clone())
     }
 
     pub fn next_turn(&mut self) {

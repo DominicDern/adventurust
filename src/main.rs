@@ -3,10 +3,10 @@ mod character;
 mod condition;
 mod health;
 mod initiative_queue;
-mod multiwindow;
+mod ui;
 mod widgets;
 
-use multiwindow::AppState;
+use ui::app_state::AppState;
 
 fn main() -> iced::Result {
     iced::daemon(AppState::title, AppState::update, AppState::view)

@@ -1,5 +1,42 @@
 name = "Aaron Nightbringer"
 
-[stats]
+[info]
+class = "Paladin"
 health = [0, 0, 0, 0, 0, 0, false]
 ac = 10
+speed = [["Walking", 30]]
+stats = [
+  [
+    "Strength",
+    10,
+    0,
+  ],
+  [
+    "Inteligence",
+    10,
+    0,
+  ],
+  [
+    "Dexterity",
+    10,
+    0,
+  ],
+  [
+    "Wisdom",
+    10,
+    0,
+  ],
+  [
+    "Constitution",
+    10,
+    0,
+  ],
+  [
+    "Charisma",
+    10,
+    0,
+  ],
+]
+immunities = ["Necrotic", "Magical Sleep"]
+passive_perception = 13
+actions = []
