@@ -1,6 +1,4 @@
-use crate::character::ID;
-use crate::health::Health;
-use crate::window_message::WindowMessage;
+use crate::{character_message::CharacterMessage, window_message::WindowMessage};
 
 pub enum MessageType {
     WindowMessage(WindowMessage),
@@ -10,6 +8,6 @@ pub enum MessageType {
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    SetHealth(ID, Health),
+    CharacterMessage(CharacterMessage),
     WindowMessage(WindowMessage),
 }

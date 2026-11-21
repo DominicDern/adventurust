@@ -1,5 +1,6 @@
 mod actor;
 mod character;
+mod character_message;
 mod condition;
 mod health;
 mod initiative_queue;

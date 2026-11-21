@@ -1,10 +1,13 @@
-use crate::character::{Character, ID};
-use crate::health::Health;
+use crate::actor::Actor;
+use crate::character::{self, Character, ID};
+use crate::character_message::CharacterMessage;
 use crate::initiative_queue::InitiativeQueue;
 use crate::messages::Message;
 use crate::widgets::{self, WidgetType};
 use crate::window_message::WindowMessage;
 
+use core::clone::Clone;
+use core::option::Option::Some;
 use std::collections::{BTreeMap, HashMap};
 
 use iced::Element;
@@ -78,7 +81,16 @@ impl AppState {
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match &message {
-            Message::SetHealth(character, health) => Task::none(),
+            Message::CharacterMessage(message) => match message {
+                CharacterMessage::SetHealth(character, health) => {
+                    if let Some(actors) = &mut self.actors {
+                        if let Some(actor) = actors.get_mut(character) {
+                            actor.set_health(*health)
+                        }
+                    }
+                    Task::none()
+                }
+            },
             Message::WindowMessage(message) => match message {
                 WindowMessage::WindowOpened(id) => {
                     let window_id = self.windows.len();
@@ -397,6 +409,9 @@ fn view_content<'a>(
         }
         WidgetType::InitQueue => {
             let mut queue_array = Vec::new();
+
+            let char = Character::from_file("example_characters/aaron_nightbringer.toml");
+
             for actor in &state.initiative_queue {
                 queue_array.push("hi".to_string());
                 println!("{:?}", queue_array);
