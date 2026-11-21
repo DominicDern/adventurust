@@ -1,7 +1,9 @@
 use crate::character::{Character, ID};
 use crate::health::Health;
 use crate::initiative_queue::InitiativeQueue;
+use crate::messages::Message;
 use crate::widgets::{self, WidgetType};
+use crate::window_message::WindowMessage;
 
 use std::collections::{BTreeMap, HashMap};
 
@@ -32,25 +34,7 @@ const PANE_ID_COLOR_FOCUSED: Color = Color::from_rgb(
     0x47 as f32 / 255.0,
 );
 
-#[derive(Debug, Clone)]
-pub enum Message {
-    SetHealth(ID, Health),
-    OpenWindow,
-    WindowOpened(window::Id),
-    WindowClosed(window::Id),
-    Split(window::Id, pane_grid::Axis, pane_grid::Pane),
-    SplitFocused(window::Id, pane_grid::Axis),
-    Clicked(pane_grid::Pane),
-    Dragged(pane_grid::DragEvent),
-    Resized(window::Id, pane_grid::ResizeEvent),
-    Maximize(window::Id, pane_grid::Pane),
-    Restore(window::Id),
-    Close(window::Id, pane_grid::Pane),
-    CloseFocused,
-    WidgetChange(window::Id, pane_grid::Pane, WidgetType),
-}
-
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct AppState {
     windows: BTreeMap<window::Id, Window>,
     focus: Option<pane_grid::Pane>,
@@ -71,8 +55,18 @@ impl AppState {
                 actors: None,
                 party: None,
             },
-            open.map(Message::WindowOpened),
+            open.map(|id| Message::WindowMessage(WindowMessage::WindowOpened(id))),
         )
+    }
+
+    pub fn add_to_queue(&mut self, id: ID, roll: u16, in_battle: bool) {
+        match &mut self.initiative_queue {
+            None => {
+                let new_queue = InitiativeQueue::new_pre_rolled(vec![(id, roll)]);
+                self.initiative_queue = new_queue;
+            }
+            Some(queue) => queue.add(id, roll, in_battle),
+        }
     }
 
     pub fn title(&self, window: window::Id) -> String {
@@ -85,92 +79,113 @@ impl AppState {
     pub fn update(&mut self, message: Message) -> Task<Message> {
         match &message {
             Message::SetHealth(character, health) => Task::none(),
-            Message::WindowOpened(id) => {
-                let window_id = self.windows.len();
-                let window = Window::new(window_id);
-                self.windows.insert(*id, window);
-                text_input::focus(format!("input-{id}"))
-            }
-            Message::WindowClosed(id) => {
-                self.windows.remove(id);
+            Message::WindowMessage(message) => match message {
+                WindowMessage::WindowOpened(id) => {
+                    let window_id = self.windows.len();
+                    let window = Window::new(window_id);
+                    self.windows.insert(*id, window);
+                    text_input::focus(format!("input-{id}"))
+                }
+                WindowMessage::WindowClosed(id) => {
+                    self.windows.remove(id);
 
-                if self.windows.is_empty() {
-                    iced::exit()
-                } else {
+                    if self.windows.is_empty() {
+                        iced::exit()
+                    } else {
+                        Task::none()
+                    }
+                }
+                WindowMessage::OpenWindow => {
+                    let Some(last_window) = self.windows.keys().last() else {
+                        return Task::none();
+                    };
+
+                    window::get_position(*last_window)
+                        .then(|last_postition| {
+                            let position = last_postition.map_or(
+                                window::Position::Default,
+                                |last_postition| {
+                                    window::Position::Specific(
+                                        last_postition + Vector::new(20.0, 20.0),
+                                    )
+                                },
+                            );
+                            let (_id, open) = window::open(window::Settings {
+                                position,
+                                ..window::Settings::default()
+                            });
+                            open
+                        })
+                        .map(|id| Message::WindowMessage(WindowMessage::WindowOpened(id)))
+                }
+                WindowMessage::Split(window_id, axis, pane) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Split(
+                            *window_id, *axis, *pane,
+                        )));
+                    }
                     Task::none()
                 }
-            }
-            Message::OpenWindow => {
-                let Some(last_window) = self.windows.keys().last() else {
-                    return Task::none();
-                };
-
-                window::get_position(*last_window)
-                    .then(|last_postition| {
-                        let position =
-                            last_postition.map_or(window::Position::Default, |last_postition| {
-                                window::Position::Specific(last_postition + Vector::new(20.0, 20.0))
-                            });
-                        let (_id, open) = window::open(window::Settings {
-                            position,
-                            ..window::Settings::default()
-                        });
-                        open
-                    })
-                    .map(Message::WindowOpened)
-            }
-            Message::Split(window_id, axis, pane) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::Split(*window_id, *axis, *pane));
+                WindowMessage::SplitFocused(window_id, axis) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::SplitFocused(
+                            *window_id, *axis,
+                        )));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::SplitFocused(window_id, axis) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::SplitFocused(*window_id, *axis));
+                WindowMessage::Resized(window_id, resize_event) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Resized(
+                            *window_id,
+                            *resize_event,
+                        )));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::Resized(window_id, resize_event) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::Resized(*window_id, *resize_event));
+                WindowMessage::Maximize(window_id, pane) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Maximize(
+                            *window_id, *pane,
+                        )));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::Maximize(window_id, pane) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::Maximize(*window_id, *pane));
+                WindowMessage::Restore(window_id) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Restore(*window_id)));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::Restore(window_id) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::Restore(*window_id));
+                WindowMessage::Close(window_id, pane) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Close(
+                            *window_id, *pane,
+                        )));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::Close(window_id, pane) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::Close(*window_id, *pane));
+                WindowMessage::WidgetChange(window_id, pane, widget_type) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::WidgetChange(
+                            *window_id,
+                            *pane,
+                            *widget_type,
+                        )));
+                    }
+                    Task::none()
                 }
-                Task::none()
-            }
-            Message::WidgetChange(window_id, pane, widget_type) => {
-                if let Some(window) = self.windows.get_mut(window_id) {
-                    window.update(Message::WidgetChange(*window_id, *pane, *widget_type));
-                }
-                Task::none()
-            }
-            _ => Task::none(),
+                _ => Task::none(),
+            },
         }
     }
     pub fn subscription(&self) -> Subscription<Message> {
-        window::close_events().map(Message::WindowClosed)
+        window::close_events().map(|id| Message::WindowMessage(WindowMessage::WindowClosed(id)))
     }
 
     pub fn view(&self, window_id: window::Id) -> Element<'_, Message> {
         if let Some(window) = self.windows.get(&window_id) {
-            center(window.view(window_id)).into()
+            center(window.view(self, window_id)).into()
         } else {
             horizontal_space().into()
         }
@@ -210,8 +225,9 @@ impl Window {
             theme: Theme::Dark,
         }
     }
-    fn view(&self, window_id: window::Id) -> Element<Message> {
-        let new_window_button = button(text("New Window")).on_press(Message::OpenWindow);
+    fn view<'a>(&'a self, state: &'a AppState, window_id: window::Id) -> Element<'a, Message> {
+        let new_window_button =
+            button(text("New Window")).on_press(Message::WindowMessage(WindowMessage::OpenWindow));
         let focus = self.focus;
         let total_panes = self.panes.len();
 
@@ -235,7 +251,7 @@ impl Window {
                         .style(button::danger)
                         .padding(3)
                         .on_press_maybe(if total_panes > 1 && !pane.is_pinned {
-                            Some(Message::Close(window_id, id))
+                            Some(Message::WindowMessage(WindowMessage::Close(window_id, id)))
                         } else {
                             None
                         }),
@@ -250,6 +266,7 @@ impl Window {
             pane_grid::Content::new(responsive(move |size| {
                 view_content(
                     window_id,
+                    state,
                     id,
                     total_panes,
                     pane.widget_type,
@@ -265,9 +282,11 @@ impl Window {
             })
         })
         .spacing(10)
-        .on_click(Message::Clicked)
-        .on_drag(Message::Dragged)
-        .on_resize(10, move |event| Message::Resized(window_id, event));
+        .on_click(|pane| Message::WindowMessage(WindowMessage::Clicked(pane)))
+        .on_drag(|pane| Message::WindowMessage(WindowMessage::Dragged(pane)))
+        .on_resize(10, move |event| {
+            Message::WindowMessage(WindowMessage::Resized(window_id, event))
+        });
         let content = column![new_window_button, pane_grid].spacing(10);
 
         container(content).width(Fill).height(Fill).into()
@@ -275,47 +294,53 @@ impl Window {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::Split(_, axis, pane) => {
-                let result = self.panes.split(axis, pane, Pane::new(self.panes_created));
+            Message::WindowMessage(message) => {
+                match message {
+                    WindowMessage::Split(_, axis, pane) => {
+                        let result = self.panes.split(axis, pane, Pane::new(self.panes_created));
 
-                if let Some((pane, _)) = result {
-                    self.focus = Some(pane);
-                }
+                        if let Some((pane, _)) = result {
+                            self.focus = Some(pane);
+                        }
 
-                self.panes_created += 1;
-            }
-            Message::SplitFocused(_, axis) => {
-                if let Some(pane) = self.focus {
-                    let result = self.panes.split(axis, pane, Pane::new(self.panes_created));
+                        self.panes_created += 1;
+                    }
+                    WindowMessage::SplitFocused(_, axis) => {
+                        if let Some(pane) = self.focus {
+                            let result =
+                                self.panes.split(axis, pane, Pane::new(self.panes_created));
 
-                    if let Some((pane, _)) = result {
+                            if let Some((pane, _)) = result {
+                                self.focus = Some(pane);
+                            }
+
+                            self.panes_created += 1;
+                        }
+                    }
+                    WindowMessage::Resized(_, pane_grid::ResizeEvent { split, ratio }) => {
+                        self.panes.resize(split, ratio);
+                    }
+                    WindowMessage::Maximize(_, pane) => {
+                        self.panes.maximize(pane);
                         self.focus = Some(pane);
                     }
-
-                    self.panes_created += 1;
-                }
-            }
-            Message::Resized(_, pane_grid::ResizeEvent { split, ratio }) => {
-                self.panes.resize(split, ratio);
-            }
-            Message::Maximize(_, pane) => {
-                self.panes.maximize(pane);
-                self.focus = Some(pane);
-            }
-            Message::Restore(_) => {
-                self.panes.restore();
-            }
-            Message::Close(_, pane) => {
-                if let Some(fallback) = self.panes.close(pane) {
-                    self.focus = Some(fallback.1);
-                } else {
-                    // nothing to fall back to, remove focus
-                    self.focus = None;
-                }
-            }
-            Message::WidgetChange(_, pane, new_widget_type) => {
-                if let Some(pane) = self.panes.get_mut(pane) {
-                    pane.widget_type = new_widget_type;
+                    WindowMessage::Restore(_) => {
+                        self.panes.restore();
+                    }
+                    WindowMessage::Close(_, pane) => {
+                        if let Some(fallback) = self.panes.close(pane) {
+                            self.focus = Some(fallback.1);
+                        } else {
+                            // nothing to fall back to, remove focus
+                            self.focus = None;
+                        }
+                    }
+                    WindowMessage::WidgetChange(_, pane, new_widget_type) => {
+                        if let Some(pane) = self.panes.get_mut(pane) {
+                            pane.widget_type = new_widget_type;
+                        }
+                    }
+                    _ => todo!(),
                 }
             }
             _ => todo!(),
@@ -342,6 +367,7 @@ impl Pane {
 
 fn view_content<'a>(
     window_id: window::Id,
+    state: &'a AppState,
     pane: pane_grid::Pane,
     total_panes: usize,
     widget_type: widgets::WidgetType,
@@ -358,19 +384,32 @@ fn view_content<'a>(
     let content = match widget_type {
         WidgetType::Blank => {
             row![
-                text!("New widget"),
+                text!("Blank widget"),
                 button(
-                    "Change to WidgetA",
-                    Message::WidgetChange(window_id, pane, WidgetType::WidgetA)
+                    "Change to init queue",
+                    Message::WindowMessage(WindowMessage::WidgetChange(
+                        window_id,
+                        pane,
+                        WidgetType::InitQueue
+                    ))
                 )
             ]
         }
-        WidgetType::WidgetA => {
+        WidgetType::InitQueue => {
+            let mut queue_array = Vec::new();
+            for actor in &state.initiative_queue {
+                queue_array.push("hi".to_string());
+                println!("{:?}", queue_array);
+            }
             row![
-                text!("Widget A"),
+                text!("Init queue"),
                 button(
                     "Change to WidgetB",
-                    Message::WidgetChange(window_id, pane, WidgetType::WidgetB),
+                    Message::WindowMessage(WindowMessage::WidgetChange(
+                        window_id,
+                        pane,
+                        WidgetType::WidgetB
+                    )),
                 )
             ]
         }
@@ -378,8 +417,12 @@ fn view_content<'a>(
             row![
                 text!("WidgetB"),
                 button(
-                    "Change to new widget",
-                    Message::WidgetChange(window_id, pane, WidgetType::Blank)
+                    "Change to blank widget",
+                    Message::WindowMessage(WindowMessage::WidgetChange(
+                        window_id,
+                        pane,
+                        WidgetType::Blank
+                    ))
                 )
             ]
         }
@@ -391,17 +434,31 @@ fn view_content<'a>(
         row![
             button(
                 "Split horizontally",
-                Message::Split(window_id, pane_grid::Axis::Horizontal, pane),
+                Message::WindowMessage(WindowMessage::Split(
+                    window_id,
+                    pane_grid::Axis::Horizontal,
+                    pane
+                )),
             ),
             button(
                 "Split vertically",
-                Message::Split(window_id, pane_grid::Axis::Vertical, pane)
+                Message::WindowMessage(WindowMessage::Split(
+                    window_id,
+                    pane_grid::Axis::Vertical,
+                    pane
+                ))
             ),
         ],
         content.width(Fill)
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(button("Close", Message::Close(window_id, pane)).style(button::danger))
+        Some(
+            button(
+                "Close",
+                Message::WindowMessage(WindowMessage::Close(window_id, pane)),
+            )
+            .style(button::danger),
+        )
     } else {
         None
     })
@@ -419,9 +476,15 @@ fn view_controls<'a>(
 ) -> Element<'a, Message> {
     let row = row![].spacing(5).push_maybe(if total_panes > 1 {
         let (content, message) = if is_maximized {
-            ("Restore", Message::Restore(window_id))
+            (
+                "Restore",
+                Message::WindowMessage(WindowMessage::Restore(window_id)),
+            )
         } else {
-            ("Maximize", Message::Maximize(window_id, pane))
+            (
+                "Maximize",
+                Message::WindowMessage(WindowMessage::Maximize(window_id, pane)),
+            )
         };
 
         Some(
@@ -438,7 +501,9 @@ fn view_controls<'a>(
         .style(button::danger)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
-            Some(Message::Close(window_id, pane))
+            Some(Message::WindowMessage(WindowMessage::Close(
+                window_id, pane,
+            )))
         } else {
             None
         });

@@ -44,6 +44,10 @@ impl InitiativeQueue {
     /// Adds an ID to the initiative. If the queue already contains an ID of equal initiative
     /// the new initiative is added immediately after.
     pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) {
+        if self.queue.is_empty() {
+            self.queue.insert(0, (id, initiative));
+            return;
+        }
         let mut index = 0;
         for (_, initiative_check) in self.queue.clone() {
             if initiative == initiative_check {

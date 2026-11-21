@@ -3,8 +3,10 @@ mod character;
 mod condition;
 mod health;
 mod initiative_queue;
+mod messages;
 mod multiwindow;
 mod widgets;
+mod window_message;
 
 use multiwindow::AppState;
 
