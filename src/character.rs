@@ -4,7 +4,7 @@ use crate::{actor::Actor, condition::Condition, health::Health};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ID {
-    id: u64,
+    pub id: u64,
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -13,8 +13,8 @@ pub struct Character {
     id: ID,
     health: Health,
     ac: u16,
-    resistances: Option<Vec<String>>,
-    conditions: Option<Vec<Condition>>,
+    resistances: Vec<String>,
+    conditions: Vec<Condition>,
 }
 
 impl Character {
@@ -59,8 +59,8 @@ impl Character {
             name: String,
             health: Health,
             ac: u16,
-            resistances: Option<Vec<String>>,
-            conditions: Option<Vec<Condition>>,
+            resistances: Vec<String>,
+            conditions: Vec<Condition>,
         }
 
         let mut hasher = DefaultHasher::new();
@@ -69,8 +69,8 @@ impl Character {
             health: character_health,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
-            resistances: None,
-            conditions: None,
+            resistances: Vec::new(),
+            conditions: Vec::new(),
         };
         temp_character.hash(&mut hasher);
         let id = ID {
@@ -83,8 +83,48 @@ impl Character {
             health: character_health,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
-            resistances: None,
-            conditions: None,
+            resistances: Vec::new(),
+            conditions: Vec::new(),
+        }
+    }
+    pub fn new(
+        name: String,
+        health: Health,
+        ac: u16,
+        resistances: Vec<String>,
+        conditions: Vec<Condition>,
+    ) -> Self {
+        use std::hash::DefaultHasher;
+        #[derive(Hash)]
+        struct TempCharacter {
+            name: String,
+            health: Health,
+            ac: u16,
+            resistances: Vec<String>,
+            conditions: Vec<Condition>,
+        }
+
+        let mut hasher = DefaultHasher::new();
+        let temp_character = TempCharacter {
+            name: name.clone(),
+            health,
+            ac,
+            // TODO change to non-constant values
+            resistances: resistances.clone(),
+            conditions: conditions.clone(),
+        };
+        temp_character.hash(&mut hasher);
+        let id = ID {
+            id: hasher.finish(),
+        };
+
+        Character {
+            name,
+            id,
+            health,
+            ac,
+            resistances,
+            conditions,
         }
     }
 }
@@ -102,8 +142,8 @@ impl Default for Character {
             id,
             health: default_character_health,
             ac: 1,
-            resistances: None,
-            conditions: None,
+            resistances: Vec::new(),
+            conditions: Vec::new(),
         }
     }
 }
@@ -137,41 +177,27 @@ impl Actor for Character {
         self.ac = ac;
     }
 
-    fn get_resistances(&self) -> Option<Vec<String>> {
+    fn get_resistances(&self) -> Vec<String> {
         self.resistances.clone()
     }
 
-    fn set_resistances(&mut self, resistances: Option<Vec<String>>) {
+    fn set_resistances(&mut self, resistances: Vec<String>) {
         self.resistances = resistances;
     }
 
     fn add_resistance(&mut self, resistance: String) {
-        match self.resistances.as_mut() {
-            Some(resistances) => {
-                resistances.push(resistance);
-            }
-            None => {
-                self.resistances = Some(vec![resistance]);
-            }
-        }
+        self.resistances.push(resistance);
     }
 
-    fn get_conditions(&self) -> Option<Vec<Condition>> {
+    fn get_conditions(&self) -> Vec<Condition> {
         self.conditions.clone()
     }
 
-    fn set_conditions(&mut self, conditions: Option<Vec<Condition>>) {
+    fn set_conditions(&mut self, conditions: Vec<Condition>) {
         self.conditions = conditions;
     }
 
     fn add_condition(&mut self, condition: Condition) {
-        match self.conditions.as_mut() {
-            Some(conditions) => {
-                conditions.push(condition);
-            }
-            None => {
-                self.conditions = Some(vec![condition]);
-            }
-        }
+        self.conditions.push(condition);
     }
 }

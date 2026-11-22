@@ -1,10 +1,13 @@
 mod actor;
 mod character;
+mod character_message;
 mod condition;
 mod health;
 mod initiative_queue;
+mod messages;
 mod multiwindow;
 mod widgets;
+mod window;
 
 use multiwindow::AppState;
 
