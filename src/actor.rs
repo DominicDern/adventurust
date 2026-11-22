@@ -10,10 +10,10 @@ pub trait Actor {
     fn set_health(&mut self, health: Health);
     fn get_ac(&self) -> u16;
     fn set_ac(&mut self, ac: u16);
-    fn get_resistances(&self) -> Option<Vec<String>>;
-    fn set_resistances(&mut self, resistances: Option<Vec<String>>);
+    fn get_resistances(&self) -> Vec<String>;
+    fn set_resistances(&mut self, resistances: Vec<String>);
     fn add_resistance(&mut self, resistance: String);
-    fn get_conditions(&self) -> Option<Vec<Condition>>;
-    fn set_conditions(&mut self, conditions: Option<Vec<Condition>>);
+    fn get_conditions(&self) -> Vec<Condition>;
+    fn set_conditions(&mut self, conditions: Vec<Condition>);
     fn add_condition(&mut self, condition: Condition);
 }

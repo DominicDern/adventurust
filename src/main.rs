@@ -7,7 +7,7 @@ mod initiative_queue;
 mod messages;
 mod multiwindow;
 mod widgets;
-mod window_message;
+mod window;
 
 use multiwindow::AppState;
 

@@ -1,14 +1,21 @@
 use crate::character::ID;
 use std::collections::VecDeque;
 
+use crate::character::Character;
+
 #[derive(Debug, Clone)]
+pub enum InitiativeMessage {
+    AddCharacter(Character),
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct InitiativeQueue {
     queue: VecDeque<(ID, u16)>,
-    position: usize,
+    position: Option<usize>,
 }
 
 impl InitiativeQueue {
-    /// Creates a inititive queue with pre rolled inititive numbers
+    /// Creates an initiative queue with pre rolled initiative numbers
     pub fn new_pre_rolled(mut actors: Vec<(ID, u16)>) -> Option<Self> {
         let mut queue = VecDeque::new();
 
@@ -16,11 +23,17 @@ impl InitiativeQueue {
             None
         } else if actors.len() == 1 {
             queue.push_front(actors.pop().unwrap());
-            let queue = InitiativeQueue { queue, position: 0 };
+            let queue = InitiativeQueue {
+                queue,
+                position: Some(0),
+            };
             Some(queue)
         } else {
             queue.push_front(actors.pop().unwrap());
-            let mut queue = InitiativeQueue { queue, position: 0 };
+            let mut queue = InitiativeQueue {
+                queue,
+                position: Some(0),
+            };
             for (id, initiative) in actors {
                 queue.add(id, initiative, false);
             }
@@ -36,7 +49,7 @@ impl InitiativeQueue {
             None
         } else {
             let mut queue = self.queue.clone();
-            queue.rotate_left(self.position);
+            queue.rotate_left(self.position.unwrap());
             Some(queue)
         }
     }
@@ -56,7 +69,7 @@ impl InitiativeQueue {
             } else if initiative > initiative_check {
                 self.queue.insert(index, (id, initiative));
                 if in_battle {
-                    self.position += 1;
+                    self.position = Some(self.position.unwrap() + 1);
                 }
                 break;
             } else if initiative < initiative_check && index == self.queue.len() - 1 {
@@ -68,11 +81,16 @@ impl InitiativeQueue {
     }
 
     pub fn next_turn(&mut self) {
-        // TODO add status effect turn addition
-        if self.position == self.queue.len() - 1 {
-            self.position = 0;
-        } else {
-            self.position += 1;
+        // TODO add status effect turn addition and double check bounding on 0, 1, or 2 size queues
+        match self.position {
+            Some(position) => {
+                if position == self.queue.len() - 1 {
+                    self.position = Some(0);
+                } else {
+                    self.position = Some(position + 1);
+                }
+            }
+            _ => (),
         }
     }
 }

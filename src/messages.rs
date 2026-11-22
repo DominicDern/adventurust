@@ -1,4 +1,6 @@
-use crate::{character_message::CharacterMessage, window_message::WindowMessage};
+use crate::{
+    character_message::CharacterMessage, initiative_queue::InitiativeMessage, window::WindowMessage,
+};
 
 pub enum MessageType {
     WindowMessage(WindowMessage),
@@ -9,5 +11,6 @@ pub enum MessageType {
 #[derive(Debug, Clone)]
 pub enum Message {
     CharacterMessage(CharacterMessage),
+    InitiativeMessage(InitiativeMessage),
     WindowMessage(WindowMessage),
 }
