@@ -1,7 +1,7 @@
 use std::fmt;
 
 use iced::Element;
-use iced::widget::{button, column, container, pane_grid, row, text, text_input};
+use iced::widget::{button, checkbox, column, container, pane_grid, row, text, text_input};
 use iced::window;
 use iced::{Center, Fill, Size};
 
@@ -69,10 +69,15 @@ pub fn view_content<'a>(
             ]
         }
         WidgetType::InitQueue => {
-            let mut queue_display: iced::widget::Column<'a, Message> = column![];
+            let mut actor_display: iced::widget::Column<'a, Message> = column![];
+            let mut init_display: iced::widget::Column<'a, Message> = column![];
 
             for (_, character) in &state.actors {
-                queue_display = queue_display.push(text(character.get_name()));
+                actor_display = actor_display.push(text(character.get_name()));
+            }
+            for (id, roll) in &state.initiative_queue.queue {
+                let character = state.actors.get(id).unwrap();
+                init_display = init_display.push(text(character.get_name()));
             }
 
             row![
@@ -85,20 +90,11 @@ pub fn view_content<'a>(
                         WidgetType::AddCharacter
                     )),
                 ),
-                queue_display
+                actor_display,
+                init_display
             ]
         }
         WidgetType::AddCharacter => {
-            let aaron = Character::from_file("src/example_characters/aaron_nightbringer.toml");
-            let lyra = Character::from_file("src/example_characters/lyra_shadebottom.toml");
-
-            let name: String;
-            let id: ID;
-            let health: Health;
-            let ac: u16;
-            let resistances: Option<Vec<String>>;
-            let conditions: Option<Vec<Condition>>;
-
             row![
                 column![
                     text_input("name", &state.add_character.name).on_input(|string| {
@@ -107,9 +103,21 @@ pub fn view_content<'a>(
                             string,
                         ))
                     }),
-                    text_input("init roll", &state.add_character.roll).on_input(|string| {
+                    checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
                         Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::Roll,
+                            AddCharacterField::InBattle,
+                            "".to_string(),
+                        ))
+                    }),
+                    text_input("init roll", &state.add_character.initiative).on_input(|string| {
+                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                            AddCharacterField::Initiative,
+                            string,
+                        ))
+                    }),
+                    text_input("AC", &state.add_character.ac).on_input(|string| {
+                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                            AddCharacterField::AC,
                             string,
                         ))
                     }),
@@ -173,11 +181,17 @@ pub fn view_content<'a>(
 #[derive(Default, Clone)]
 pub struct AddCharacterState {
     pub name: String,
-    pub roll: String,
+    pub ac: String,
+    pub primary_max_hp: String,
+    pub in_battle: bool,
+    pub player_controlled: bool,
+    pub initiative: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum AddCharacterField {
     Name,
-    Roll,
+    AC,
+    InBattle,
+    Initiative,
 }
