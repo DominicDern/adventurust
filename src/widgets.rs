@@ -3,13 +3,10 @@ use std::fmt;
 use iced::Element;
 use iced::widget::{button, checkbox, column, container, pane_grid, row, text, text_input};
 use iced::window;
-use iced::{Center, Fill, Size};
+use iced::{Center, Fill, Size, Theme};
 
 use crate::AppState;
 use crate::actor::Actor;
-use crate::character::{Character, ID};
-use crate::condition::Condition;
-use crate::health::Health;
 use crate::messages::Message;
 use crate::widgets;
 use crate::window::WindowMessage;
@@ -24,7 +21,11 @@ pub enum WidgetType {
 }
 
 impl WidgetType {
-    pub const ALL: &'static [WidgetType] = &[WidgetType::Blank, WidgetType::InitQueue];
+    pub const ALL: &'static [WidgetType] = &[
+        WidgetType::Blank,
+        WidgetType::InitQueue,
+        WidgetType::AddCharacter,
+    ];
 }
 
 impl fmt::Display for WidgetType {
@@ -69,15 +70,15 @@ pub fn view_content<'a>(
             ]
         }
         WidgetType::InitQueue => {
-            let mut actor_display: iced::widget::Column<'a, Message> = column![];
             let mut init_display: iced::widget::Column<'a, Message> = column![];
 
-            for (_, character) in &state.actors {
-                actor_display = actor_display.push(text(character.get_name()));
-            }
             for (id, roll) in &state.initiative_queue.queue {
                 let character = state.actors.get(id).unwrap();
-                init_display = init_display.push(text(character.get_name()));
+                let char_string = character.get_name();
+                let mut init_string = roll.to_string();
+                init_string.push_str(" : ");
+                init_string.push_str(&char_string);
+                init_display = init_display.push(text(init_string));
             }
 
             row![
@@ -90,11 +91,16 @@ pub fn view_content<'a>(
                         WidgetType::AddCharacter
                     )),
                 ),
-                actor_display,
                 init_display
             ]
         }
         WidgetType::AddCharacter => {
+            let mut actor_display: iced::widget::Column<'a, Message> = column![];
+
+            for character in state.actors.values() {
+                actor_display = actor_display.push(text(character.get_name()));
+            }
+
             row![
                 column![
                     text_input("name", &state.add_character.name).on_input(|string| {
@@ -134,7 +140,14 @@ pub fn view_content<'a>(
                         pane,
                         WidgetType::Blank
                     ))
-                )
+                ),
+                container(actor_display).padding(12).style(|theme: &Theme| {
+                    let palette = theme.extended_palette();
+
+                    container::bordered_box(theme)
+                        .background(palette.secondary.base.color)
+                        .color(palette.secondary.base.text)
+                })
             ]
         }
     }
