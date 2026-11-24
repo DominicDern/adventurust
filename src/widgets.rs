@@ -1,9 +1,11 @@
 use std::fmt;
 
 use iced::Element;
-use iced::widget::{button, checkbox, column, container, pane_grid, row, text, text_input};
+use iced::widget::{
+    button, checkbox, column, container, pane_grid, row, scrollable, text, text_input,
+};
 use iced::window;
-use iced::{Center, Fill, Size, Theme};
+use iced::{Center, Fill, Length, Size, Theme};
 
 use crate::AppState;
 use crate::actor::Actor;
@@ -102,37 +104,104 @@ pub fn view_content<'a>(
             }
 
             row![
-                column![
-                    text_input("name", &state.add_character.name).on_input(|string| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::Name,
-                            string,
-                        ))
-                    }),
-                    checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::InBattle,
-                            "".to_string(),
-                        ))
-                    }),
-                    text_input("init roll", &state.add_character.initiative).on_input(|string| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::Initiative,
-                            string,
-                        ))
-                    }),
-                    text_input("AC", &state.add_character.ac).on_input(|string| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::AC,
-                            string,
-                        ))
-                    }),
-                    button(
-                        "Add character",
-                        Message::WindowMessage(WindowMessage::AddCharacter)
-                    )
-                ],
-                text!("AddCharacter"),
+                row![
+                    column![
+                        text_input("name", &state.add_character.name).on_input(|string| {
+                            Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                AddCharacterField::Name,
+                                string,
+                            ))
+                        }),
+                        row![
+                            checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::InBattle,
+                                    "".to_string(),
+                                ))
+                            }),
+                            checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::InBattle,
+                                    "".to_string(),
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("AC", &state.add_character.ac).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::AC,
+                                    string,
+                                ))
+                            }),
+                            text_input("init roll", &state.add_character.initiative).on_input(
+                                |string| {
+                                    Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                        AddCharacterField::Initiative,
+                                        string,
+                                    ))
+                                }
+                            ),
+                        ],
+                        row![
+                            text_input("Str", &state.add_character.ac).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Strenth,
+                                    string,
+                                ))
+                            }),
+                            text_input("Dex", &state.add_character.initiative).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Initiative,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Con", &state.add_character.ac).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::AC,
+                                    string,
+                                ))
+                            }),
+                            text_input("Int", &state.add_character.initiative).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Initiative,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Wis", &state.add_character.ac).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::AC,
+                                    string,
+                                ))
+                            }),
+                            text_input("Cha", &state.add_character.initiative).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Initiative,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        button(
+                            "Add character",
+                            Message::WindowMessage(WindowMessage::AddCharacter)
+                        )
+                    ]
+                    .width(Length::FillPortion(2)),
+                    scrollable(container(scrollable(actor_display)).padding(12).style(
+                        |theme: &Theme| {
+                            let palette = theme.extended_palette();
+
+                            container::bordered_box(theme)
+                                .background(palette.secondary.base.color)
+                                .color(palette.secondary.base.text)
+                        }
+                    ))
+                    .width(Length::FillPortion(1)),
+                ]
+                .width(Length::FillPortion(5)),
                 button(
                     "Change to blank widget",
                     Message::WindowMessage(WindowMessage::WidgetChange(
@@ -140,14 +209,8 @@ pub fn view_content<'a>(
                         pane,
                         WidgetType::Blank
                     ))
-                ),
-                container(actor_display).padding(12).style(|theme: &Theme| {
-                    let palette = theme.extended_palette();
-
-                    container::bordered_box(theme)
-                        .background(palette.secondary.base.color)
-                        .color(palette.secondary.base.text)
-                })
+                )
+                .width(Length::FillPortion(1)),
             ]
         }
     }
@@ -199,6 +262,7 @@ pub struct AddCharacterState {
     pub in_battle: bool,
     pub player_controlled: bool,
     pub initiative: String,
+    pub strenth: String,
 }
 
 #[derive(Debug, Clone)]
@@ -207,4 +271,5 @@ pub enum AddCharacterField {
     AC,
     InBattle,
     Initiative,
+    Strenth,
 }

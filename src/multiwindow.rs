@@ -227,6 +227,16 @@ impl AppState {
                                 }
                             }
                         },
+                        AddCharacterField::Strenth => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.strenth = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.initiative = "".to_string();
+                                }
+                            }
+                        },
                     }
                     Task::none()
                 }
