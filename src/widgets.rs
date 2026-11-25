@@ -83,6 +83,14 @@ pub fn view_content<'a>(
                 init_display = init_display.push(text(init_string));
             }
 
+            let mut party_display: iced::widget::Column<'a, Message> = column![];
+
+            for id in &state.party {
+                let character = state.actors.get(id).unwrap();
+                let char_string = character.get_name();
+                party_display = party_display.push(text(char_string));
+            }
+
             row![
                 text!("Init queue"),
                 button(
@@ -93,7 +101,8 @@ pub fn view_content<'a>(
                         WidgetType::AddCharacter
                     )),
                 ),
-                init_display
+                init_display,
+                party_display
             ]
         }
         WidgetType::AddCharacter => {
@@ -113,9 +122,9 @@ pub fn view_content<'a>(
                             ))
                         }),
                         row![
-                            checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
+                            checkbox("in party", state.add_character.in_party).on_toggle(|_| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::InBattle,
+                                    AddCharacterField::InParty,
                                     "".to_string(),
                                 ))
                             }),
@@ -133,25 +142,29 @@ pub fn view_content<'a>(
                                     string,
                                 ))
                             }),
-                            text_input("init roll", &state.add_character.initiative).on_input(
-                                |string| {
-                                    Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                        AddCharacterField::Initiative,
-                                        string,
-                                    ))
-                                }
-                            ),
+                            if state.add_character.in_battle {
+                                text_input("init roll", &state.add_character.initiative).on_input(
+                                    |string| {
+                                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                            AddCharacterField::Initiative,
+                                            string,
+                                        ))
+                                    },
+                                )
+                            } else {
+                                text_input("init roll", &state.add_character.initiative)
+                            },
                         ],
                         row![
                             text_input("Str", &state.add_character.ac).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::Strenth,
+                                    AddCharacterField::Str,
                                     string,
                                 ))
                             }),
                             text_input("Dex", &state.add_character.initiative).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::Initiative,
+                                    AddCharacterField::Dex,
                                     string,
                                 ))
                             }),
@@ -159,13 +172,13 @@ pub fn view_content<'a>(
                         row![
                             text_input("Con", &state.add_character.ac).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::AC,
+                                    AddCharacterField::Con,
                                     string,
                                 ))
                             }),
                             text_input("Int", &state.add_character.initiative).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::Initiative,
+                                    AddCharacterField::Int,
                                     string,
                                 ))
                             }),
@@ -173,13 +186,13 @@ pub fn view_content<'a>(
                         row![
                             text_input("Wis", &state.add_character.ac).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::AC,
+                                    AddCharacterField::Wis,
                                     string,
                                 ))
                             }),
                             text_input("Cha", &state.add_character.initiative).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                                    AddCharacterField::Initiative,
+                                    AddCharacterField::Cha,
                                     string,
                                 ))
                             }),
@@ -258,18 +271,30 @@ pub fn view_content<'a>(
 pub struct AddCharacterState {
     pub name: String,
     pub ac: String,
-    pub primary_max_hp: String,
+    pub max_hp: String,
+    pub in_party: bool,
     pub in_battle: bool,
     pub player_controlled: bool,
     pub initiative: String,
-    pub strenth: String,
+    pub str: String,
+    pub dex: String,
+    pub con: String,
+    pub int: String,
+    pub wis: String,
+    pub cha: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum AddCharacterField {
     Name,
     AC,
+    InParty,
     InBattle,
     Initiative,
-    Strenth,
+    Str,
+    Dex,
+    Con,
+    Int,
+    Wis,
+    Cha,
 }

@@ -1,3 +1,10 @@
+use std::collections::{BTreeMap, HashMap};
+
+use iced::widget::center;
+use iced::widget::{button, horizontal_space, pane_grid, row, text, text_input};
+use iced::window;
+use iced::{Color, Element, Subscription, Task, Theme, Vector};
+
 use crate::actor::Actor;
 use crate::character::{Character, ID};
 use crate::character_message::CharacterMessage;
@@ -7,26 +14,6 @@ use crate::messages::Message;
 use crate::widgets::WidgetType;
 use crate::widgets::{AddCharacterField, AddCharacterState};
 use crate::window::{Window, WindowMessage};
-
-use core::clone::Clone;
-use core::ops::Add;
-use core::u16;
-use std::collections::{BTreeMap, HashMap};
-
-use iced::Element;
-use iced::Subscription;
-use iced::Task;
-use iced::Theme;
-use iced::Vector;
-use iced::widget::horizontal_space;
-use iced::widget::row;
-use iced::widget::text;
-use iced::widget::text_input;
-
-use iced::Color;
-use iced::widget::pane_grid;
-use iced::widget::{button, center};
-use iced::window;
 
 pub const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
     0xFF as f32 / 255.0,
@@ -214,6 +201,9 @@ impl AppState {
                                 }
                             }
                         },
+                        AddCharacterField::InParty => {
+                            self.add_character.in_party = !self.add_character.in_party;
+                        }
                         AddCharacterField::InBattle => {
                             self.add_character.in_battle = !self.add_character.in_battle;
                         }
@@ -227,13 +217,63 @@ impl AppState {
                                 }
                             }
                         },
-                        AddCharacterField::Strenth => match new_input.parse::<u16>() {
+                        AddCharacterField::Str => match new_input.parse::<u16>() {
                             Ok(_) => {
-                                self.add_character.strenth = new_input;
+                                self.add_character.str = new_input;
                             }
                             Err(_) => {
                                 if new_input.is_empty() {
-                                    self.add_character.initiative = "".to_string();
+                                    self.add_character.str = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Dex => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.dex = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.dex = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Con => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.con = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.con = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Int => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.int = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.int = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Wis => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.wis = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.wis = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Cha => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.cha = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.cha = "".to_string();
                                 }
                             }
                         },
@@ -273,9 +313,12 @@ impl AppState {
                             }
                         };
                         self.initiative_queue
-                            .add(character.get_id(), initiative, true); // Currently
+                            .add(character.clone().get_id(), initiative, true); // TODO currently
                         // assuming that added character is going into battle, need a checkbox for
                         // this
+                    }
+                    if self.add_character.in_party {
+                        self.party.push(character.get_id());
                     }
 
                     Task::none()
