@@ -217,6 +217,26 @@ impl AppState {
                                 }
                             }
                         },
+                        AddCharacterField::HP => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.max_hp = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.max_hp = "".to_string();
+                                }
+                            }
+                        },
+                        AddCharacterField::Speed => match new_input.parse::<u16>() {
+                            Ok(_) => {
+                                self.add_character.speed = new_input;
+                            }
+                            Err(_) => {
+                                if new_input.is_empty() {
+                                    self.add_character.speed = "".to_string();
+                                }
+                            }
+                        },
                         AddCharacterField::Str => match new_input.parse::<u16>() {
                             Ok(_) => {
                                 self.add_character.str = new_input;
@@ -282,14 +302,28 @@ impl AppState {
                 }
                 WindowMessage::AddCharacter => {
                     let name = self.add_character.name.clone();
-                    let temp_health = Health {
-                        primary_hp: 0,
-                        primary_max_hp: 0,
+                    let primary_max_hp = match self.add_character.max_hp.parse::<u16>() {
+                        Ok(hp) => hp,
+                        Err(error) => {
+                            println!("Failed to parse hp into u16, defaulting to 0\n{error}");
+                            0
+                        }
+                    };
+                    let health = Health {
+                        primary_hp: primary_max_hp,
+                        primary_max_hp,
                         secondary_hp: 0,
                         secondary_max_hp: 0,
                         temp_hp: 0,
                         temp_max_hp: 0,
                         wild_shape: false,
+                    };
+                    let speed = match self.add_character.speed.parse::<u16>() {
+                        Ok(speed) => speed,
+                        Err(error) => {
+                            println!("Failed to parse speed into u16, defaulting to 0\n{error}");
+                            0
+                        }
                     };
                     let ac = match self.add_character.ac.parse::<u16>() {
                         Ok(ac) => ac,
@@ -298,7 +332,7 @@ impl AppState {
                             0
                         }
                     };
-                    let character = Character::new(name, temp_health, ac, Vec::new(), Vec::new());
+                    let character = Character::new(name, health, speed, ac, Vec::new(), Vec::new());
 
                     self.actors
                         .insert(character.clone().get_id(), character.clone());

@@ -156,13 +156,27 @@ pub fn view_content<'a>(
                             },
                         ],
                         row![
-                            text_input("Str", &state.add_character.ac).on_input(|string| {
+                            text_input("Max HP", &state.add_character.max_hp).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::HP,
+                                    string,
+                                ))
+                            }),
+                            text_input("Speed", &state.add_character.speed).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Speed,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Str", &state.add_character.str).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Str,
                                     string,
                                 ))
                             }),
-                            text_input("Dex", &state.add_character.initiative).on_input(|string| {
+                            text_input("Dex", &state.add_character.dex).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Dex,
                                     string,
@@ -170,13 +184,13 @@ pub fn view_content<'a>(
                             }),
                         ],
                         row![
-                            text_input("Con", &state.add_character.ac).on_input(|string| {
+                            text_input("Con", &state.add_character.con).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Con,
                                     string,
                                 ))
                             }),
-                            text_input("Int", &state.add_character.initiative).on_input(|string| {
+                            text_input("Int", &state.add_character.int).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Int,
                                     string,
@@ -184,13 +198,13 @@ pub fn view_content<'a>(
                             }),
                         ],
                         row![
-                            text_input("Wis", &state.add_character.ac).on_input(|string| {
+                            text_input("Wis", &state.add_character.wis).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Wis,
                                     string,
                                 ))
                             }),
-                            text_input("Cha", &state.add_character.initiative).on_input(|string| {
+                            text_input("Cha", &state.add_character.cha).on_input(|string| {
                                 Message::WindowMessage(WindowMessage::AddCharacterChanged(
                                     AddCharacterField::Cha,
                                     string,
@@ -271,11 +285,12 @@ pub fn view_content<'a>(
 pub struct AddCharacterState {
     pub name: String,
     pub ac: String,
-    pub max_hp: String,
     pub in_party: bool,
     pub in_battle: bool,
     pub player_controlled: bool,
     pub initiative: String,
+    pub max_hp: String,
+    pub speed: String,
     pub str: String,
     pub dex: String,
     pub con: String,
@@ -291,6 +306,8 @@ pub enum AddCharacterField {
     InParty,
     InBattle,
     Initiative,
+    HP,
+    Speed,
     Str,
     Dex,
     Con,

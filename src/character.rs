@@ -11,8 +11,9 @@ pub struct ID {
 pub struct Character {
     name: String,
     id: ID,
-    health: Health,
     ac: u16,
+    health: Health,
+    speed: u16,
     resistances: Vec<String>,
     conditions: Vec<Condition>,
 }
@@ -25,6 +26,7 @@ impl Character {
         #[derive(Deserialize, Debug)]
         struct Stats {
             health: (u16, u16, u16, u16, u16, u16, bool),
+            speed: u16,
             ac: u16,
         }
 
@@ -43,7 +45,7 @@ impl Character {
             .expect("unable to read character file contents");
         let character_toml: CharacterTOML =
             toml::from_str(&file_contents).expect("failed to deserialize character file");
-        let character_health: Health = Health {
+        let health: Health = Health {
             primary_hp: character_toml.stats.health.0,
             primary_max_hp: character_toml.stats.health.1,
             secondary_hp: character_toml.stats.health.2,
@@ -52,12 +54,14 @@ impl Character {
             temp_max_hp: character_toml.stats.health.5,
             wild_shape: character_toml.stats.health.6,
         };
+        let speed: u16 = character_toml.stats.speed;
         let name = character_toml.name;
         use std::hash::DefaultHasher;
         #[derive(Hash)]
         struct TempCharacter {
             name: String,
             health: Health,
+            speed: u16,
             ac: u16,
             resistances: Vec<String>,
             conditions: Vec<Condition>,
@@ -66,7 +70,8 @@ impl Character {
         let mut hasher = DefaultHasher::new();
         let temp_character = TempCharacter {
             name: name.clone(),
-            health: character_health,
+            health,
+            speed,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
             resistances: Vec::new(),
@@ -80,7 +85,8 @@ impl Character {
         Character {
             name,
             id,
-            health: character_health,
+            health,
+            speed,
             ac: character_toml.stats.ac,
             // TODO change to nonconstant values
             resistances: Vec::new(),
@@ -90,6 +96,7 @@ impl Character {
     pub fn new(
         name: String,
         health: Health,
+        speed: u16,
         ac: u16,
         resistances: Vec<String>,
         conditions: Vec<Condition>,
@@ -99,6 +106,7 @@ impl Character {
         struct TempCharacter {
             name: String,
             health: Health,
+            speed: u16,
             ac: u16,
             resistances: Vec<String>,
             conditions: Vec<Condition>,
@@ -108,6 +116,7 @@ impl Character {
         let temp_character = TempCharacter {
             name: name.clone(),
             health,
+            speed,
             ac,
             // TODO change to non-constant values
             resistances: resistances.clone(),
@@ -122,6 +131,7 @@ impl Character {
             name,
             id,
             health,
+            speed,
             ac,
             resistances,
             conditions,
@@ -141,7 +151,8 @@ impl Default for Character {
             name: "default character".to_string(),
             id,
             health: default_character_health,
-            ac: 1,
+            speed: 0,
+            ac: 0,
             resistances: Vec::new(),
             conditions: Vec::new(),
         }
@@ -158,7 +169,7 @@ impl Actor for Character {
     }
 
     fn get_id(self) -> ID {
-        self.id.clone()
+        self.id
     }
 
     fn get_health(&self) -> (u16, u16, Option<(u16, u16)>) {
