@@ -81,6 +81,17 @@ pub fn view_content<'a>(
                 init_string.push_str(" : ");
                 init_string.push_str(&char_string);
                 init_display = init_display.push(text(init_string));
+                let init_display = if state.party.contains(id) {
+                    container(init_display).style(|theme: &Theme| {
+                        let palette = theme.extended_palette();
+
+                        container::bordered_box(theme)
+                            .background(palette.secondary.base.color)
+                            .color(palette.secondary.base.text)
+                    });
+                } else {
+                    container(init_display);
+                };
             }
 
             let mut party_display: iced::widget::Column<'a, Message> = column![];
@@ -287,7 +298,6 @@ pub struct AddCharacterState {
     pub ac: String,
     pub in_party: bool,
     pub in_battle: bool,
-    pub player_controlled: bool,
     pub initiative: String,
     pub max_hp: String,
     pub speed: String,
