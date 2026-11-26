@@ -80,18 +80,28 @@ pub fn view_content<'a>(
                 let mut init_string = roll.to_string();
                 init_string.push_str(" : ");
                 init_string.push_str(&char_string);
-                init_display = init_display.push(text(init_string));
-                let init_display = if state.party.contains(id) {
-                    container(init_display).style(|theme: &Theme| {
-                        let palette = theme.extended_palette();
 
-                        container::bordered_box(theme)
-                            .background(palette.secondary.base.color)
-                            .color(palette.secondary.base.text)
-                    });
+                init_display = if state.party.contains(id) {
+                    let init_container =
+                        container(text(init_string.clone())).style(|theme: &Theme| {
+                            let palette = theme.extended_palette();
+
+                            container::bordered_box(theme)
+                                .background(palette.primary.weak.color)
+                                .color(palette.primary.base.text)
+                        });
+                    init_display.push(init_container)
                 } else {
-                    container(init_display);
-                };
+                    let init_container =
+                        container(text(init_string.clone())).style(|theme: &Theme| {
+                            let palette = theme.extended_palette();
+
+                            container::bordered_box(theme)
+                                .background(palette.secondary.weak.color)
+                                .color(palette.secondary.base.text)
+                        });
+                    init_display.push(init_container)
+                }
             }
 
             let mut party_display: iced::widget::Column<'a, Message> = column![];
