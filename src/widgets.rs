@@ -72,9 +72,13 @@ pub fn view_content<'a>(
             ]
         }
         WidgetType::InitQueue => {
+            match state.initiative_queue.position {
+                Some(pos) => println!("{pos}"),
+                None => println!("no pos initialized"),
+            }
             let mut init_display: iced::widget::Column<'a, Message> = column![];
 
-            for (id, roll) in &state.initiative_queue.queue {
+            for (n, (id, roll)) in state.initiative_queue.queue.iter().enumerate() {
                 let character = state.actors.get(id).unwrap();
                 let char_string = character.get_name();
                 let mut init_string = roll.to_string();
@@ -82,14 +86,40 @@ pub fn view_content<'a>(
                 init_string.push_str(&char_string);
 
                 init_display = if state.party.contains(id) {
-                    let init_container =
-                        container(text(init_string.clone())).style(|theme: &Theme| {
-                            let palette = theme.extended_palette();
+                    let init_container;
+                    match state.initiative_queue.position {
+                        Some(position) => {
+                            if position == n {
+                                init_container =
+                                    container(text(init_string.clone())).style(|theme: &Theme| {
+                                        let palette = theme.extended_palette();
 
-                            container::bordered_box(theme)
-                                .background(palette.primary.weak.color)
-                                .color(palette.primary.base.text)
-                        });
+                                        container::bordered_box(theme)
+                                            .background(palette.primary.weak.color)
+                                            .color(palette.primary.base.text)
+                                    });
+                            } else {
+                                init_container =
+                                    container(text(init_string.clone())).style(|theme: &Theme| {
+                                        let palette = theme.extended_palette();
+
+                                        container::bordered_box(theme)
+                                            .background(palette.primary.weak.color)
+                                            .color(palette.primary.base.text)
+                                    });
+                            }
+                        }
+                        None => {
+                            init_container =
+                                container(text(init_string.clone())).style(|theme: &Theme| {
+                                    let palette = theme.extended_palette();
+
+                                    container::bordered_box(theme)
+                                        .background(palette.primary.weak.color)
+                                        .color(palette.primary.base.text)
+                                });
+                        }
+                    }
                     init_display.push(init_container)
                 } else {
                     let init_container =
@@ -101,7 +131,7 @@ pub fn view_content<'a>(
                                 .color(palette.secondary.base.text)
                         });
                     init_display.push(init_container)
-                }
+                };
             }
 
             let mut party_display: iced::widget::Column<'a, Message> = column![];
