@@ -12,8 +12,8 @@ use iced::window;
 use crate::AppState;
 use crate::messages::Message;
 use crate::multiwindow::Pane;
+use crate::multiwindow::style;
 use crate::multiwindow::view_controls;
-use crate::multiwindow::{PANE_ID_COLOR_FOCUSED, PANE_ID_COLOR_UNFOCUSED, style};
 use crate::widgets::{AddCharacterField, WidgetType, view_content};
 
 #[derive(Debug, Clone)]
@@ -61,6 +61,8 @@ impl Window {
         }
     }
     pub fn view<'a>(&'a self, state: &'a AppState, window_id: window::Id) -> Element<'a, Message> {
+        let palette = self.theme.extended_palette();
+
         let new_window_button =
             button(text("New Window")).on_press(Message::WindowMessage(WindowMessage::OpenWindow));
         let focus = self.focus;
@@ -72,9 +74,9 @@ impl Window {
             let title = row![
                 "Pane",
                 text(pane.id.to_string()).color(if is_focused {
-                    PANE_ID_COLOR_FOCUSED
+                    palette.background.base.text
                 } else {
-                    PANE_ID_COLOR_UNFOCUSED
+                    palette.background.weak.text
                 }),
             ]
             .spacing(5);

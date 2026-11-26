@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use iced::widget::center;
 use iced::widget::{button, horizontal_space, pane_grid, row, text, text_input};
 use iced::window;
-use iced::{Color, Element, Subscription, Task, Theme, Vector};
+use iced::{Element, Subscription, Task, Theme, Vector};
 
 use crate::actor::Actor;
 use crate::character::{Character, ID};
@@ -14,17 +14,6 @@ use crate::messages::Message;
 use crate::widgets::WidgetType;
 use crate::widgets::{AddCharacterField, AddCharacterState};
 use crate::window::{Window, WindowMessage};
-
-pub const PANE_ID_COLOR_UNFOCUSED: Color = Color::from_rgb(
-    0xFF as f32 / 255.0,
-    0xC7 as f32 / 255.0,
-    0xC7 as f32 / 255.0,
-);
-pub const PANE_ID_COLOR_FOCUSED: Color = Color::from_rgb(
-    0xFF as f32 / 255.0,
-    0x47 as f32 / 255.0,
-    0x47 as f32 / 255.0,
-);
 
 #[derive(Default, Clone)]
 pub struct AppState {
@@ -377,7 +366,7 @@ impl AppState {
         if let Some(window) = self.windows.get(&window) {
             window.theme.clone()
         } else {
-            Theme::default()
+            Theme::Dark
         }
     }
 }
