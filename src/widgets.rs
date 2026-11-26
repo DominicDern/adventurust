@@ -1,15 +1,14 @@
 use std::fmt;
 
 use iced::Element;
-use iced::widget::{button, column, container, pane_grid, row, text, text_input};
+use iced::widget::{
+    button, checkbox, column, container, pane_grid, row, scrollable, text, text_input,
+};
 use iced::window;
-use iced::{Center, Fill, Size};
+use iced::{Center, Fill, Length, Size, Theme};
 
 use crate::AppState;
 use crate::actor::Actor;
-use crate::character::{Character, ID};
-use crate::condition::Condition;
-use crate::health::Health;
 use crate::messages::Message;
 use crate::widgets;
 use crate::window::WindowMessage;
@@ -24,7 +23,11 @@ pub enum WidgetType {
 }
 
 impl WidgetType {
-    pub const ALL: &'static [WidgetType] = &[WidgetType::Blank, WidgetType::InitQueue];
+    pub const ALL: &'static [WidgetType] = &[
+        WidgetType::Blank,
+        WidgetType::InitQueue,
+        WidgetType::AddCharacter,
+    ];
 }
 
 impl fmt::Display for WidgetType {
@@ -69,10 +72,74 @@ pub fn view_content<'a>(
             ]
         }
         WidgetType::InitQueue => {
-            let mut queue_display: iced::widget::Column<'a, Message> = column![];
+            match state.initiative_queue.position {
+                Some(pos) => println!("{pos}"),
+                None => println!("no pos initialized"),
+            }
+            let mut init_display: iced::widget::Column<'a, Message> = column![];
 
-            for (_, character) in &state.actors {
-                queue_display = queue_display.push(text(character.get_name()));
+            for (n, (id, roll)) in state.initiative_queue.queue.iter().enumerate() {
+                let character = state.actors.get(id).unwrap();
+                let char_string = character.get_name();
+                let mut init_string = roll.to_string();
+                init_string.push_str(" : ");
+                init_string.push_str(&char_string);
+
+                init_display = if state.party.contains(id) {
+                    let init_container;
+                    match state.initiative_queue.position {
+                        Some(position) => {
+                            if position == n {
+                                init_container =
+                                    container(text(init_string.clone())).style(|theme: &Theme| {
+                                        let palette = theme.extended_palette();
+
+                                        container::bordered_box(theme)
+                                            .background(palette.primary.weak.color)
+                                            .color(palette.primary.base.text)
+                                    });
+                            } else {
+                                init_container =
+                                    container(text(init_string.clone())).style(|theme: &Theme| {
+                                        let palette = theme.extended_palette();
+
+                                        container::bordered_box(theme)
+                                            .background(palette.primary.weak.color)
+                                            .color(palette.primary.base.text)
+                                    });
+                            }
+                        }
+                        None => {
+                            init_container =
+                                container(text(init_string.clone())).style(|theme: &Theme| {
+                                    let palette = theme.extended_palette();
+
+                                    container::bordered_box(theme)
+                                        .background(palette.primary.weak.color)
+                                        .color(palette.primary.base.text)
+                                });
+                        }
+                    }
+                    init_display.push(init_container)
+                } else {
+                    let init_container =
+                        container(text(init_string.clone())).style(|theme: &Theme| {
+                            let palette = theme.extended_palette();
+
+                            container::bordered_box(theme)
+                                .background(palette.secondary.weak.color)
+                                .color(palette.secondary.base.text)
+                        });
+                    init_display.push(init_container)
+                };
+            }
+
+            let mut party_display: iced::widget::Column<'a, Message> = column![];
+
+            for id in &state.party {
+                let character = state.actors.get(id).unwrap();
+                let char_string = character.get_name();
+                party_display = party_display.push(text(char_string));
             }
 
             row![
@@ -85,40 +152,134 @@ pub fn view_content<'a>(
                         WidgetType::AddCharacter
                     )),
                 ),
-                queue_display
+                init_display,
+                party_display
             ]
         }
         WidgetType::AddCharacter => {
-            let aaron = Character::from_file("src/example_characters/aaron_nightbringer.toml");
-            let lyra = Character::from_file("src/example_characters/lyra_shadebottom.toml");
+            let mut actor_display: iced::widget::Column<'a, Message> = column![];
 
-            let name: String;
-            let id: ID;
-            let health: Health;
-            let ac: u16;
-            let resistances: Option<Vec<String>>;
-            let conditions: Option<Vec<Condition>>;
+            for character in state.actors.values() {
+                actor_display = actor_display.push(text(character.get_name()));
+            }
 
             row![
-                column![
-                    text_input("name", &state.add_character.name).on_input(|string| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::Name,
-                            string,
-                        ))
-                    }),
-                    text_input("init roll", &state.add_character.roll).on_input(|string| {
-                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
-                            AddCharacterField::Roll,
-                            string,
-                        ))
-                    }),
-                    button(
-                        "Add character",
-                        Message::WindowMessage(WindowMessage::AddCharacter)
-                    )
-                ],
-                text!("AddCharacter"),
+                row![
+                    column![
+                        text_input("name", &state.add_character.name).on_input(|string| {
+                            Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                AddCharacterField::Name,
+                                string,
+                            ))
+                        }),
+                        row![
+                            checkbox("in party", state.add_character.in_party).on_toggle(|_| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::InParty,
+                                    "".to_string(),
+                                ))
+                            }),
+                            checkbox("in battle", state.add_character.in_battle).on_toggle(|_| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::InBattle,
+                                    "".to_string(),
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("AC", &state.add_character.ac).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::AC,
+                                    string,
+                                ))
+                            }),
+                            if state.add_character.in_battle {
+                                text_input("init roll", &state.add_character.initiative).on_input(
+                                    |string| {
+                                        Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                            AddCharacterField::Initiative,
+                                            string,
+                                        ))
+                                    },
+                                )
+                            } else {
+                                text_input("init roll", &state.add_character.initiative)
+                            },
+                        ],
+                        row![
+                            text_input("Max HP", &state.add_character.max_hp).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::HP,
+                                    string,
+                                ))
+                            }),
+                            text_input("Speed", &state.add_character.speed).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Speed,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Str", &state.add_character.str).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Str,
+                                    string,
+                                ))
+                            }),
+                            text_input("Dex", &state.add_character.dex).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Dex,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Con", &state.add_character.con).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Con,
+                                    string,
+                                ))
+                            }),
+                            text_input("Int", &state.add_character.int).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Int,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        row![
+                            text_input("Wis", &state.add_character.wis).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Wis,
+                                    string,
+                                ))
+                            }),
+                            text_input("Cha", &state.add_character.cha).on_input(|string| {
+                                Message::WindowMessage(WindowMessage::AddCharacterChanged(
+                                    AddCharacterField::Cha,
+                                    string,
+                                ))
+                            }),
+                        ],
+                        button(
+                            "Add character",
+                            Message::WindowMessage(WindowMessage::AddCharacter)
+                        )
+                    ]
+                    .width(Length::FillPortion(2)),
+                    scrollable(container(scrollable(actor_display)).padding(12).style(
+                        |theme: &Theme| {
+                            let palette = theme.extended_palette();
+
+                            container::bordered_box(theme)
+                                .background(palette.secondary.base.color)
+                                .color(palette.secondary.base.text)
+                        }
+                    ))
+                    .width(Length::FillPortion(1)),
+                ]
+                .width(Length::FillPortion(5)),
                 button(
                     "Change to blank widget",
                     Message::WindowMessage(WindowMessage::WidgetChange(
@@ -127,6 +288,7 @@ pub fn view_content<'a>(
                         WidgetType::Blank
                     ))
                 )
+                .width(Length::FillPortion(1)),
             ]
         }
     }
@@ -173,11 +335,33 @@ pub fn view_content<'a>(
 #[derive(Default, Clone)]
 pub struct AddCharacterState {
     pub name: String,
-    pub roll: String,
+    pub ac: String,
+    pub in_party: bool,
+    pub in_battle: bool,
+    pub initiative: String,
+    pub max_hp: String,
+    pub speed: String,
+    pub str: String,
+    pub dex: String,
+    pub con: String,
+    pub int: String,
+    pub wis: String,
+    pub cha: String,
 }
 
 #[derive(Debug, Clone)]
 pub enum AddCharacterField {
     Name,
-    Roll,
+    AC,
+    InParty,
+    InBattle,
+    Initiative,
+    HP,
+    Speed,
+    Str,
+    Dex,
+    Con,
+    Int,
+    Wis,
+    Cha,
 }

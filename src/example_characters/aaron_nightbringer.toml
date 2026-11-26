@@ -2,4 +2,5 @@ name = "Aaron Nightbringer"
 
 [stats]
 health = [0, 0, 0, 0, 0, 0, false]
+speed = 25
 ac = 10

@@ -10,8 +10,8 @@ pub enum InitiativeMessage {
 
 #[derive(Debug, Clone, Default)]
 pub struct InitiativeQueue {
-    queue: VecDeque<(ID, u16)>,
-    position: Option<usize>,
+    pub queue: VecDeque<(ID, u16)>,
+    pub position: Option<usize>,
 }
 
 impl InitiativeQueue {
@@ -59,6 +59,7 @@ impl InitiativeQueue {
     pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) {
         if self.queue.is_empty() {
             self.queue.insert(0, (id, initiative));
+            self.position = Some(0);
             return;
         }
         let mut index = 0;
@@ -69,7 +70,14 @@ impl InitiativeQueue {
             } else if initiative > initiative_check {
                 self.queue.insert(index, (id, initiative));
                 if in_battle {
-                    self.position = Some(self.position.unwrap() + 1);
+                    match self.position {
+                        Some(position) => {
+                            self.position = Some(position + 1);
+                        }
+                        None => {
+                            self.position = Some(0);
+                        }
+                    }
                 }
                 break;
             } else if initiative < initiative_check && index == self.queue.len() - 1 {
