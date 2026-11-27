@@ -506,7 +506,7 @@ pub mod style {
         }
     }
 
-    /// One row in the initiative list.
+    /// theme for an entry in the initiaive queue widget
     pub fn init_entry(is_party: bool, is_current: bool) -> impl Fn(&Theme) -> container::Style {
         move |theme| {
             let palette = theme.extended_palette();
