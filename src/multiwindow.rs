@@ -176,6 +176,14 @@ impl AppState {
                     }
                     Task::none()
                 }
+                WindowMessage::Dragged(window_id, event) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Dragged(
+                            *window_id, *event,
+                        )));
+                    }
+                    Task::none()
+                }
                 WindowMessage::AddCharacterChanged(field, new_input) => {
                     let new_input = new_input.clone();
                     match field {
@@ -352,6 +360,14 @@ impl AppState {
                     self.theme = theme.clone();
                     Task::none()
                 }
+                WindowMessage::Clicked(window_id, pane) => {
+                    if let Some(window) = self.windows.get_mut(window_id) {
+                        window.update(Message::WindowMessage(WindowMessage::Clicked(
+                            *window_id, *pane,
+                        )));
+                    }
+                    Task::none()
+                }
                 _ => Task::none(),
             },
         }
@@ -412,7 +428,7 @@ pub fn view_controls<'a>(
 
         Some(
             button(text(content).size(14))
-                .style(button::secondary)
+                .style(button::primary)
                 .padding(3)
                 .on_press(message),
         )
@@ -482,9 +498,9 @@ pub mod style {
         let palette = theme.extended_palette();
 
         container::Style {
-            background: Some(palette.background.weak.color.into()),
+            background: Some(palette.secondary.strong.color.into()),
             border: Border {
-                width: 2.0,
+                width: 0.0,
                 color: palette.background.strong.color,
                 radius: R.into(),
             },
@@ -525,10 +541,22 @@ pub mod style {
                 style.border = Border {
                     width: 3.0,
                     color: palette.background.base.text,
-                    radius: 4.0.into(),
+                    radius: R.into(),
                 };
             }
             style
+        }
+    }
+
+    /// theme for an entry in the initiaive queue widget
+    pub fn primary_box() -> impl Fn(&Theme) -> container::Style {
+        move |theme| {
+            let palette = theme.extended_palette();
+            let pair = palette.background.base;
+
+            container::rounded_box(theme)
+                .background(pair.color)
+                .color(pair.text)
         }
     }
 }

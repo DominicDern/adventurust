@@ -60,7 +60,7 @@ pub fn view_content<'a>(
 
     let content = match widget_type {
         WidgetType::Blank => {
-            row![text!("Blank widget")]
+            row![]
         }
         WidgetType::InitQueue => {
             let mut init_display: iced::widget::Column<'a, Message> = column![].spacing(5);
@@ -83,10 +83,21 @@ pub fn view_content<'a>(
             for id in &state.party {
                 let character = state.actors.get(id).unwrap();
                 let char_string = character.get_name();
-                party_display = party_display.push(text(char_string));
+                party_display = party_display.push(
+                    container(text(char_string))
+                        .padding(6)
+                        .width(Fill)
+                        .style(style::init_entry(state.party.contains(id), false)),
+                );
             }
 
-            row![text!("Init queue"), init_display, party_display]
+            row![
+                container(init_display)
+                    .padding(6)
+                    .width(Fill)
+                    .style(style::primary_box()),
+                party_display
+            ]
         }
         WidgetType::AddCharacter => {
             let mut actor_display: iced::widget::Column<'a, Message> = column![];

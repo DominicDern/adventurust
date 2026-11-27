@@ -8,7 +8,7 @@ use iced::widget::horizontal_space;
 use iced::widget::pane_grid;
 use iced::widget::pane_grid::PaneGrid;
 use iced::widget::pick_list;
-use iced::widget::{column, text};
+use iced::widget::{column, mouse_area, text};
 use iced::widget::{responsive, row};
 use iced::window;
 
@@ -26,8 +26,8 @@ pub enum WindowMessage {
     WindowClosed(window::Id),
     Split(window::Id, pane_grid::Axis, pane_grid::Pane),
     SplitFocused(window::Id, pane_grid::Axis),
-    Clicked(pane_grid::Pane),
-    Dragged(pane_grid::DragEvent),
+    Clicked(window::Id, pane_grid::Pane),
+    Dragged(window::Id, pane_grid::DragEvent),
     Resized(window::Id, pane_grid::ResizeEvent),
     Maximize(window::Id, pane_grid::Pane),
     Restore(window::Id),
@@ -116,17 +116,22 @@ impl Window {
                     style::title_bar_active
                 });
 
-            pane_grid::Content::new(responsive(move |size| {
-                view_content(
-                    window_id,
-                    state,
-                    id,
-                    total_panes,
-                    pane.widget_type,
-                    pane.is_pinned,
-                    size,
-                )
-            }))
+            pane_grid::Content::new(
+                mouse_area(responsive(move |size| {
+                    view_content(
+                        window_id,
+                        state,
+                        id,
+                        total_panes,
+                        pane.widget_type,
+                        pane.is_pinned,
+                        size,
+                    )
+                }))
+                .on_press(Message::WindowMessage(WindowMessage::Clicked(
+                    window_id, id,
+                ))),
+            )
             .title_bar(title_bar)
             .style(if is_focused {
                 style::pane_focused
@@ -135,8 +140,8 @@ impl Window {
             })
         })
         .spacing(10)
-        .on_click(|pane| Message::WindowMessage(WindowMessage::Clicked(pane)))
-        .on_drag(|pane| Message::WindowMessage(WindowMessage::Dragged(pane)))
+        .on_click(move |pane| Message::WindowMessage(WindowMessage::Clicked(window_id, pane)))
+        .on_drag(move |event| Message::WindowMessage(WindowMessage::Dragged(window_id, event)))
         .on_resize(10, move |event| {
             Message::WindowMessage(WindowMessage::Resized(window_id, event))
         });
@@ -202,6 +207,14 @@ impl Window {
                             pane.widget_type = new_widget_type;
                         }
                     }
+                    WindowMessage::Clicked(_, pane) => {
+                        self.focus = Some(pane);
+                    }
+                    WindowMessage::Dragged(_, pane_grid::DragEvent::Dropped { pane, target }) => {
+                        self.panes.drop(pane, target);
+                    }
+                    WindowMessage::Dragged(_, _) => {}
+
                     _ => todo!(),
                 }
             }
