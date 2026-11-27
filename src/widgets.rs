@@ -15,7 +15,7 @@ use crate::widgets;
 use crate::window::WindowMessage;
 
 // Where to define new widget types
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum WidgetType {
     #[default]
     Blank,
@@ -60,17 +60,7 @@ pub fn view_content<'a>(
 
     let content = match widget_type {
         WidgetType::Blank => {
-            row![
-                text!("Blank widget"),
-                button(
-                    "Change to init queue",
-                    Message::WindowMessage(WindowMessage::WidgetChange(
-                        window_id,
-                        pane,
-                        WidgetType::InitQueue
-                    ))
-                )
-            ]
+            row![text!("Blank widget")]
         }
         WidgetType::InitQueue => {
             let mut init_display: iced::widget::Column<'a, Message> = column![].spacing(5);
@@ -96,19 +86,7 @@ pub fn view_content<'a>(
                 party_display = party_display.push(text(char_string));
             }
 
-            row![
-                text!("Init queue"),
-                button(
-                    "Change to AddCharacter",
-                    Message::WindowMessage(WindowMessage::WidgetChange(
-                        window_id,
-                        pane,
-                        WidgetType::AddCharacter
-                    )),
-                ),
-                init_display,
-                party_display
-            ]
+            row![text!("Init queue"), init_display, party_display]
         }
         WidgetType::AddCharacter => {
             let mut actor_display: iced::widget::Column<'a, Message> = column![];
@@ -233,16 +211,7 @@ pub fn view_content<'a>(
                     ))
                     .width(Length::FillPortion(1)),
                 ]
-                .width(Length::FillPortion(5)),
-                button(
-                    "Change to blank widget",
-                    Message::WindowMessage(WindowMessage::WidgetChange(
-                        window_id,
-                        pane,
-                        WidgetType::Blank
-                    ))
-                )
-                .width(Length::FillPortion(1)),
+                .width(Fill),
             ]
         }
     }

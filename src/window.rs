@@ -1,8 +1,10 @@
+use iced::Center;
 use iced::Element;
 use iced::Fill;
 use iced::Theme;
 use iced::widget::button;
 use iced::widget::container;
+use iced::widget::horizontal_space;
 use iced::widget::pane_grid;
 use iced::widget::pane_grid::PaneGrid;
 use iced::widget::pick_list;
@@ -71,6 +73,16 @@ impl Window {
         let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
+            let widget_picker = pick_list(
+                WidgetType::ALL,
+                Some(pane.widget_type),
+                move |widget_type| {
+                    Message::WindowMessage(WindowMessage::WidgetChange(window_id, id, widget_type))
+                },
+            )
+            .text_size(14)
+            .padding(3);
+
             let title = row![
                 "Pane",
                 text(pane.id.to_string()).color(if is_focused {
@@ -78,8 +90,12 @@ impl Window {
                 } else {
                     palette.background.weak.text
                 }),
+                horizontal_space(),
+                widget_picker,
             ]
-            .spacing(5);
+            .spacing(5)
+            .align_y(Center)
+            .width(Fill);
 
             let title_bar = pane_grid::TitleBar::new(title)
                 .controls(pane_grid::Controls::dynamic(
