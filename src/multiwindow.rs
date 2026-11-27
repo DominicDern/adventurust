@@ -15,10 +15,11 @@ use crate::widgets::WidgetType;
 use crate::widgets::{AddCharacterField, AddCharacterState};
 use crate::window::{Window, WindowMessage};
 
-#[derive(Default, Clone)]
+#[derive(Clone)]
 pub struct AppState {
     windows: BTreeMap<window::Id, Window>,
     focus: Option<pane_grid::Pane>,
+    pub theme: Theme,
     pub initiative_queue: InitiativeQueue,
     pub actors: HashMap<ID, Character>,
     pub party: Vec<ID>,
@@ -33,6 +34,7 @@ impl AppState {
             Self {
                 windows: BTreeMap::new(),
                 focus: None,
+                theme: Theme::Dark,
                 initiative_queue: InitiativeQueue::default(),
                 actors: HashMap::new(),
                 party: Vec::new(),
@@ -346,6 +348,10 @@ impl AppState {
 
                     Task::none()
                 }
+                WindowMessage::ThemeChanged(theme) => {
+                    self.theme = theme.clone();
+                    Task::none()
+                }
                 _ => Task::none(),
             },
         }
@@ -362,12 +368,8 @@ impl AppState {
         }
     }
 
-    pub fn theme(&self, window: window::Id) -> Theme {
-        if let Some(window) = self.windows.get(&window) {
-            window.theme.clone()
-        } else {
-            Theme::Dark
-        }
+    pub fn theme(&self, _window: window::Id) -> Theme {
+        self.theme.clone()
     }
 }
 
@@ -433,8 +435,20 @@ pub fn view_controls<'a>(
 }
 
 pub mod style {
+    use iced::border::Radius;
     use iced::widget::container;
     use iced::{Border, Theme};
+
+    const R: f32 = 8.0;
+
+    fn top_only() -> Radius {
+        Radius {
+            top_left: R,
+            top_right: R,
+            bottom_right: 0.0,
+            bottom_left: 0.0,
+        }
+    }
 
     pub fn title_bar_active(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
@@ -442,6 +456,10 @@ pub mod style {
         container::Style {
             text_color: Some(palette.background.strong.text),
             background: Some(palette.background.strong.color.into()),
+            border: Border {
+                radius: top_only(),
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -452,6 +470,10 @@ pub mod style {
         container::Style {
             text_color: Some(palette.primary.strong.text),
             background: Some(palette.primary.strong.color.into()),
+            border: Border {
+                radius: top_only(),
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -464,7 +486,7 @@ pub mod style {
             border: Border {
                 width: 2.0,
                 color: palette.background.strong.color,
-                ..Border::default()
+                radius: R.into(),
             },
             ..Default::default()
         }
@@ -478,9 +500,35 @@ pub mod style {
             border: Border {
                 width: 2.0,
                 color: palette.primary.strong.color,
-                ..Border::default()
+                radius: R.into(),
             },
             ..Default::default()
+        }
+    }
+
+    /// One row in the initiative list.
+    pub fn init_entry(is_party: bool, is_current: bool) -> impl Fn(&Theme) -> container::Style {
+        move |theme| {
+            let palette = theme.extended_palette();
+            let pair = if is_current {
+                palette.success.strong
+            } else if is_party {
+                palette.primary.weak
+            } else {
+                palette.secondary.weak
+            };
+
+            let mut style = container::bordered_box(theme)
+                .background(pair.color)
+                .color(pair.text);
+            if is_current {
+                style.border = Border {
+                    width: 3.0,
+                    color: palette.background.base.text,
+                    radius: 4.0.into(),
+                };
+            }
+            style
         }
     }
 }

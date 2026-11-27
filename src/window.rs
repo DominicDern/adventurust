@@ -5,6 +5,7 @@ use iced::widget::button;
 use iced::widget::container;
 use iced::widget::pane_grid;
 use iced::widget::pane_grid::PaneGrid;
+use iced::widget::pick_list;
 use iced::widget::{column, text};
 use iced::widget::{responsive, row};
 use iced::window;
@@ -33,6 +34,7 @@ pub enum WindowMessage {
     WidgetChange(window::Id, pane_grid::Pane, WidgetType),
     AddCharacterChanged(AddCharacterField, String),
     AddCharacter,
+    ThemeChanged(Theme),
 }
 
 #[derive(Clone)]
@@ -43,7 +45,6 @@ pub struct Window {
     focus: Option<pane_grid::Pane>,
     scale_input: String,
     current_scale: f64,
-    pub theme: Theme,
 }
 
 impl Window {
@@ -57,11 +58,10 @@ impl Window {
             focus: None,
             scale_input: "1.0".to_string(),
             current_scale: 1.0,
-            theme: Theme::Dark,
         }
     }
     pub fn view<'a>(&'a self, state: &'a AppState, window_id: window::Id) -> Element<'a, Message> {
-        let palette = self.theme.extended_palette();
+        let palette = state.theme.extended_palette();
 
         let new_window_button =
             button(text("New Window")).on_press(Message::WindowMessage(WindowMessage::OpenWindow));
@@ -124,9 +124,18 @@ impl Window {
         .on_resize(10, move |event| {
             Message::WindowMessage(WindowMessage::Resized(window_id, event))
         });
-        let content = column![new_window_button, pane_grid].spacing(10);
+        let theme_picker = pick_list(Theme::ALL, Some(&state.theme), |theme| {
+            Message::WindowMessage(WindowMessage::ThemeChanged(theme))
+        });
 
-        container(content).width(Fill).height(Fill).into()
+        let content =
+            column![row![new_window_button, theme_picker].spacing(10), pane_grid].spacing(10);
+
+        container(content)
+            .width(Fill)
+            .height(Fill)
+            .padding(10)
+            .into()
     }
 
     pub fn update(&mut self, message: Message) {

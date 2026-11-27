@@ -10,6 +10,7 @@ use iced::{Center, Fill, Length, Size, Theme};
 use crate::AppState;
 use crate::actor::Actor;
 use crate::messages::Message;
+use crate::multiwindow::style;
 use crate::widgets;
 use crate::window::WindowMessage;
 
@@ -72,66 +73,19 @@ pub fn view_content<'a>(
             ]
         }
         WidgetType::InitQueue => {
-            match state.initiative_queue.position {
-                Some(pos) => println!("{pos}"),
-                None => println!("no pos initialized"),
-            }
-            let mut init_display: iced::widget::Column<'a, Message> = column![];
+            let mut init_display: iced::widget::Column<'a, Message> = column![].spacing(5);
 
             for (n, (id, roll)) in state.initiative_queue.queue.iter().enumerate() {
                 let character = state.actors.get(id).unwrap();
-                let char_string = character.get_name();
-                let mut init_string = roll.to_string();
-                init_string.push_str(" : ");
-                init_string.push_str(&char_string);
+                let label = format!("{roll} : {}", character.get_name());
+                let is_current = state.initiative_queue.position == Some(n);
 
-                init_display = if state.party.contains(id) {
-                    let init_container;
-                    match state.initiative_queue.position {
-                        Some(position) => {
-                            if position == n {
-                                init_container =
-                                    container(text(init_string.clone())).style(|theme: &Theme| {
-                                        let palette = theme.extended_palette();
-
-                                        container::bordered_box(theme)
-                                            .background(palette.primary.weak.color)
-                                            .color(palette.primary.base.text)
-                                    });
-                            } else {
-                                init_container =
-                                    container(text(init_string.clone())).style(|theme: &Theme| {
-                                        let palette = theme.extended_palette();
-
-                                        container::bordered_box(theme)
-                                            .background(palette.primary.weak.color)
-                                            .color(palette.primary.base.text)
-                                    });
-                            }
-                        }
-                        None => {
-                            init_container =
-                                container(text(init_string.clone())).style(|theme: &Theme| {
-                                    let palette = theme.extended_palette();
-
-                                    container::bordered_box(theme)
-                                        .background(palette.primary.weak.color)
-                                        .color(palette.primary.base.text)
-                                });
-                        }
-                    }
-                    init_display.push(init_container)
-                } else {
-                    let init_container =
-                        container(text(init_string.clone())).style(|theme: &Theme| {
-                            let palette = theme.extended_palette();
-
-                            container::bordered_box(theme)
-                                .background(palette.secondary.weak.color)
-                                .color(palette.secondary.base.text)
-                        });
-                    init_display.push(init_container)
-                };
+                init_display = init_display.push(
+                    container(text(label))
+                        .padding(6)
+                        .width(Fill)
+                        .style(style::init_entry(state.party.contains(id), is_current)),
+                );
             }
 
             let mut party_display: iced::widget::Column<'a, Message> = column![];
