@@ -53,10 +53,6 @@ impl AppState {
         }
     }
 
-    pub fn add_to_initiative(&mut self, id: ID, initiative: u16, in_battle: bool) {
-        self.initiative_queue.add(id, initiative, in_battle);
-    }
-
     pub fn title(&self, window: window::Id) -> String {
         self.windows
             .get(&window)
@@ -354,6 +350,14 @@ impl AppState {
                         self.party.push(character.get_id());
                     }
 
+                    Task::none()
+                }
+                WindowMessage::NextTurn => {
+                    self.initiative_queue.next_turn();
+                    Task::none()
+                }
+                WindowMessage::RemoveFromInit(index) => {
+                    self.initiative_queue.remove(*index);
                     Task::none()
                 }
                 WindowMessage::ThemeChanged(theme) => {

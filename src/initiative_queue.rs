@@ -43,17 +43,6 @@ impl InitiativeQueue {
 }
 
 impl InitiativeQueue {
-    // TODO add rolling inititive
-    pub fn get_queue(&self) -> Option<VecDeque<(ID, u16)>> {
-        if self.queue.is_empty() {
-            None
-        } else {
-            let mut queue = self.queue.clone();
-            queue.rotate_left(self.position.unwrap());
-            Some(queue)
-        }
-    }
-
     /// Adds an ID to the initiative. If the queue already contains an ID of equal initiative
     /// the new initiative is added immediately after.
     pub fn add(&mut self, id: ID, initiative: u16, in_battle: bool) {
@@ -88,17 +77,28 @@ impl InitiativeQueue {
         }
     }
 
+    pub fn remove(&mut self, index: usize) -> Option<ID> {
+        match self.queue.remove(index) {
+            Some((id, _)) => {
+                if self.position.unwrap() > index {
+                    println!("Removing 1 from queue");
+                    print!("{}", self.position.unwrap());
+                    self.position = Some(self.position.unwrap() - 1);
+                }
+                Some(id)
+            }
+            None => None,
+        }
+    }
+
     pub fn next_turn(&mut self) {
         // TODO add status effect turn addition and double check bounding on 0, 1, or 2 size queues
-        match self.position {
-            Some(position) => {
-                if position == self.queue.len() - 1 {
-                    self.position = Some(0);
-                } else {
-                    self.position = Some(position + 1);
-                }
+        if let Some(position) = self.position {
+            if position == self.queue.len() - 1 {
+                self.position = Some(0);
+            } else {
+                self.position = Some(position + 1);
             }
-            _ => (),
         }
     }
 }

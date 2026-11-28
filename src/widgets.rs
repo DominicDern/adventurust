@@ -65,13 +65,17 @@ pub fn view_content<'a>(
         WidgetType::InitQueue => {
             let mut init_display: iced::widget::Column<'a, Message> = column![].spacing(5);
 
-            for (n, (id, roll)) in state.initiative_queue.queue.iter().enumerate() {
+            for (index, (id, roll)) in state.initiative_queue.queue.iter().enumerate() {
                 let character = state.actors.get(id).unwrap();
                 let label = format!("{roll} : {}", character.get_name());
-                let is_current = state.initiative_queue.position == Some(n);
+                let is_current = state.initiative_queue.position == Some(index);
 
+                let remove_button = button(
+                    "Remove",
+                    Message::WindowMessage(WindowMessage::RemoveFromInit(index)),
+                );
                 init_display = init_display.push(
-                    container(text(label))
+                    container(row![text(label), remove_button])
                         .padding(6)
                         .width(Fill)
                         .style(style::init_entry(state.party.contains(id), is_current)),
@@ -91,13 +95,19 @@ pub fn view_content<'a>(
                 );
             }
 
-            row![
-                container(init_display)
-                    .padding(6)
-                    .width(Fill)
-                    .style(style::primary_box()),
-                party_display
-            ]
+            row![column![
+                row![
+                    container(init_display)
+                        .padding(6)
+                        .width(Fill)
+                        .style(style::primary_box()),
+                    container(party_display)
+                        .padding(6)
+                        .width(Fill)
+                        .style(style::primary_box()),
+                ],
+                button("Next turn", Message::WindowMessage(WindowMessage::NextTurn))
+            ]]
         }
         WidgetType::AddCharacter => {
             let mut actor_display: iced::widget::Column<'a, Message> = column![];

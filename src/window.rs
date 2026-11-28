@@ -36,6 +36,8 @@ pub enum WindowMessage {
     WidgetChange(window::Id, pane_grid::Pane, WidgetType),
     AddCharacterChanged(AddCharacterField, String),
     AddCharacter,
+    NextTurn,
+    RemoveFromInit(usize),
     ThemeChanged(Theme),
 }
 
@@ -214,7 +216,6 @@ impl Window {
                         self.panes.drop(pane, target);
                     }
                     WindowMessage::Dragged(_, _) => {}
-
                     _ => todo!(),
                 }
             }
